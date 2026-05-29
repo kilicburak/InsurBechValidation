@@ -43,8 +43,8 @@ def build_tasks(rows, answer_set, type_set):
     ]
 
 
-def padded_pdf_name(doc_id, width):
-    return re.sub(r"(\d+)", lambda m: m.group(1).zfill(width), doc_id) + ".pdf"
+def padded_id(doc_id, width):
+    return re.sub(r"[-_ ]?(\d+)", lambda m: "-" + m.group(1).zfill(width), doc_id)
 
 
 def build_manifest(qa_dir, pdf_dir):
@@ -64,11 +64,11 @@ def build_manifest(qa_dir, pdf_dir):
     width = max(2, len(str(max(numbers)))) if numbers else 2
     docs = []
     for doc_id, rows in grouped:
-        pdf_name = padded_pdf_name(doc_id, width)
+        pid = padded_id(doc_id, width)
         docs.append({
-            "id": doc_id,
-            "title": doc_id,
-            "pdf": pdf_dir + "/" + pdf_name,
+            "id": pid,
+            "title": pid,
+            "pdf": pdf_dir + "/" + pid + ".pdf",
             "count": len(rows),
             "tasks": build_tasks(rows, answer_set, type_set),
         })
