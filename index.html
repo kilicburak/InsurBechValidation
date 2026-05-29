@@ -4,16 +4,13 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>InsurBench Annotation Validator</title>
+<link rel="stylesheet" href="theme.css"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/web/pdf_viewer.css"/>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/web/pdf_viewer.js"></script>
 <style>
-  :root {
-    --bg: #f4f1ea; --panel: #fffdf8; --ink: #1b1a17; --muted: #6f6a60;
-    --line: #d9d3c6; --accent: #2f5d50; --bad: #9c3b2e; --good: #2f5d50; --chip: #ece7dc;
-  }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: ui-serif, Georgia, "Times New Roman", serif; color: var(--ink); background: var(--bg); height: 100vh; overflow: hidden; }
+  body { margin: 0; font-family: var(--font-family); color: var(--ink); background: var(--bg); height: 100vh; overflow: hidden; }
   .chooser { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
   .chooser-head { flex: none; padding: 14px 28px; border-bottom: 1px solid var(--line); background: var(--panel); }
   .chooser-head h1 { font-size: 20px; margin: 0; }
@@ -60,12 +57,14 @@
   .tzoom button { font: inherit; font-size: 12px; padding: 3px 9px; border-radius: 6px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .tzoom button:hover { border-color: var(--accent); }
   .scroll { overflow-y: auto; padding: 10px 16px 16px; flex: 1; min-height: 0; }
-  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 12px 0 5px; }
+  .label { font-size: var(--fs-label); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 12px 0 5px; }
   .scroll #form > .label:first-child { margin-top: 2px; }
-  .question { font-size: 15px; line-height: 1.5; background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
-  .value { background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 15px; line-height: 1.5; }
-  .typedef { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
-  .qhelper { font-size: 13px; color: var(--muted); background: #f0ede4; border-left: 3px solid var(--accent); padding: 8px 11px; border-radius: 0 6px 6px 0; margin: 8px 0; line-height: 1.4; }
+  .question { font-size: var(--fs-value); line-height: 1.5; background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 11px 13px; }
+  .value { background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 11px 13px; font-size: var(--fs-value); line-height: 1.5; }
+  .typedef { font-size: var(--fs-helper); color: var(--muted); margin-top: 6px; line-height: 1.45; }
+  .qhelper { font-size: var(--fs-helper); color: var(--muted); background: #fff; border-left: 3px solid var(--accent); padding: 8px 11px; border-radius: 0 6px 6px 0; margin: 8px 0; line-height: 1.4; }
+  .value.ok, .question.ok { background: #e7efe9; border-color: var(--good); }
+  .value.bad, .question.bad { background: #f6e8e5; border-color: var(--bad); }
   .formglossary { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
   .formglossary summary { cursor: pointer; color: var(--accent); list-style: none; font-size: 12.5px; }
   .formglossary summary::-webkit-details-marker { display: none; }
@@ -78,7 +77,8 @@
   .gate.needs button { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
   .fielderr { color: var(--bad); font-size: 12px; margin-top: 5px; }
   .mrow.needs { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
-  .gate button, .fix button { font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+  .gate button { font: inherit; font-size: var(--fs-button); padding: 8px 18px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+  .fix button { font: inherit; font-size: var(--fs-option); padding: 7px 15px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .gate button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
   .gate button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
   .fix { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--bad); background: #fbf2ef; }
@@ -100,12 +100,17 @@
   .rules > div { margin-top: 6px; }
   .mblock { display: flex; flex-direction: column; gap: 6px; }
   .mrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--chip); }
-  .mrow .mtext { font-size: 15px; }
+  .mrow .mtext { font-size: var(--fs-value); }
   .mrow.wrong .mtext { text-decoration: line-through; color: var(--bad); }
+  .mrow.ok { background: #e7efe9; border-color: var(--good); }
+  .mrow.wrong { background: #f6e8e5; border-color: var(--bad); }
   .macts { display: flex; gap: 6px; flex: none; }
-  .macts button { font: inherit; font-size: 12px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+  .macts button { font: inherit; font-size: var(--fs-button); padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .macts button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
   .macts button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
+  .macts button.sel-edit { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .mfix { padding-left: 10px; border-left: 3px solid var(--accent); margin-top: 6px; }
+  .mfix input { width: 100%; font: inherit; font-size: 14px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); }
   .mfix { padding-left: 10px; border-left: 3px solid var(--bad); }
   .mfix input { width: 100%; font: inherit; font-size: 14px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fbf2ef; color: var(--ink); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -117,7 +122,7 @@
   .addrow input { flex: 1; font: inherit; font-size: 14px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); }
   .addrow button { font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
   .footer { border-top: 1px solid var(--line); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .nav button, .footer .save { font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; color: var(--ink); }
+  .nav button, .footer .save { font: inherit; font-size: var(--fs-nav); padding: 9px 18px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; color: var(--ink); }
   .footer .save { background: var(--accent); color: #fff; border-color: var(--accent); }
   .nav { display: flex; gap: 8px; }
   .skipbtn { font: inherit; font-size: 12px; padding: 7px 12px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; margin-left: auto; margin-right: 8px; }
@@ -222,7 +227,7 @@ let results = {};
 let current = 0;
 let addOpen = false;
 let showErrors = false;
-let formZoom = parseFloat(localStorage.getItem("form_zoom")) || 0.7;
+let formZoom = parseFloat(localStorage.getItem("form_zoom")) || 1;
 
 function applyFormZoom() {
   document.getElementById("form").style.zoom = formZoom;
@@ -258,7 +263,7 @@ function blank(task) {
     question_correct: null, question_fix: "",
     answer_correct: null, answer_fix: null,
     reasoning_correct: null, reasoning_fix: "",
-    mentions_judgments: (task.mentions || []).map(() => ({ correct: null, fix: "" })),
+    mentions_judgments: (task.mentions || []).map(() => ({ state: null, fix: "" })),
     mentions_added: [],
     type_correct: null, type_fix: null,
     skipped: false,
@@ -270,7 +275,7 @@ function record(task) {
   if (!Array.isArray(merged.mentions_judgments)) merged.mentions_judgments = [];
   while (merged.mentions_judgments.length < n) merged.mentions_judgments.push({ correct: null, fix: "" });
   merged.mentions_judgments = merged.mentions_judgments.slice(0, n).map((j) => ({
-    correct: j && typeof j.correct === "boolean" ? j.correct : null,
+    state: j && ["correct", "incorrect", "irrelevant"].includes(j.state) ? j.state : null,
     fix: j && typeof j.fix === "string" ? j.fix : "",
   }));
   if (!Array.isArray(merged.mentions_added)) merged.mentions_added = [];
@@ -305,7 +310,11 @@ function buildGate(label, valueText, field, options, rec, def, showValue) {
   }
   if (showValue !== false) {
     const val = document.createElement("div");
-    val.className = "value"; val.textContent = valueText;
+    val.className = "value";
+    const c = rec[field + "_correct"];
+    if (c === true) val.classList.add("ok");
+    else if (c === false) val.classList.add("bad");
+    val.textContent = valueText;
     wrap.appendChild(val);
   }
   if (def) {
@@ -375,22 +384,53 @@ function buildMentions(task, rec) {
     row.className = "mblock";
 
     const top = document.createElement("div");
-    top.className = "mrow" + (j.correct === false ? " wrong" : "") + (showErrors && j.correct === null ? " needs" : "");
+    top.className = "mrow" + (j.state === "correct" ? " ok" : "") + (j.state === "irrelevant" ? " wrong" : "") + (showErrors && !j.state ? " needs" : "");
     const txt = document.createElement("span");
     txt.className = "mtext"; txt.textContent = s;
     const acts = document.createElement("div");
     acts.className = "macts";
+
+    const set = (state) => {
+      j.state = j.state === state ? null : state;
+      if (j.state !== "incorrect") j.fix = "";
+      else if (!j.fix) j.fix = s;
+      rec.skipped = false;
+      saveStore(); renderForm();
+    };
+
     const ok = document.createElement("button");
     ok.textContent = "Correct";
-    if (j.correct === true) ok.className = "sel-good";
-    ok.onclick = () => { j.correct = j.correct === true ? null : true; j.fix = ""; rec.skipped = false; saveStore(); renderForm(); };
-    const bad = document.createElement("button");
-    bad.textContent = "Incorrect";
-    if (j.correct === false) bad.className = "sel-bad";
-    bad.onclick = () => { j.correct = j.correct === false ? null : false; rec.skipped = false; saveStore(); renderForm(); };
-    acts.appendChild(ok); acts.appendChild(bad);
+    if (j.state === "correct") ok.className = "sel-good";
+    ok.onclick = () => set("correct");
+    const inc = document.createElement("button");
+    inc.textContent = "Incorrect";
+    if (j.state === "incorrect") inc.className = "sel-edit";
+    inc.onclick = () => set("incorrect");
+    const irr = document.createElement("button");
+    irr.textContent = "Irrelevant";
+    if (j.state === "irrelevant") irr.className = "sel-bad";
+    irr.onclick = () => set("irrelevant");
+
+    acts.appendChild(ok); acts.appendChild(inc); acts.appendChild(irr);
     top.appendChild(txt); top.appendChild(acts);
     row.appendChild(top);
+
+    if (j.state === "incorrect") {
+      const fix = document.createElement("div");
+      fix.className = "mfix";
+      const inp = document.createElement("input");
+      inp.type = "text";
+      inp.value = j.fix;
+      inp.placeholder = "Corrected section name";
+      inp.oninput = () => { j.fix = inp.value; saveStore(); };
+      fix.appendChild(inp);
+      row.appendChild(fix);
+      if (showErrors && !j.fix.trim()) {
+        const e = document.createElement("div");
+        e.className = "fielderr"; e.textContent = "Write the corrected section name";
+        row.appendChild(e);
+      }
+    }
     wrap.appendChild(row);
   });
 
@@ -454,7 +494,8 @@ function renderForm() {
   const qLab = document.createElement("div");
   qLab.className = "label"; qLab.textContent = "Question";
   const q = document.createElement("div");
-  q.className = "question"; q.textContent = task.question;
+  q.className = "question" + (rec.question_correct === true ? " ok" : rec.question_correct === false ? " bad" : "");
+  q.textContent = task.question;
   form.appendChild(qLab); form.appendChild(q);
   const qh = document.createElement("div");
   qh.className = "qhelper";
@@ -470,7 +511,7 @@ function renderForm() {
   form.appendChild(mLab);
   const hint = document.createElement("div");
   hint.className = "hint";
-  hint.innerHTML = "Mark each as Correct if it is relevant and correctly written, otherwise Incorrect and fix it." +
+  hint.innerHTML = "For each section: <b>Correct</b> if it is relevant and well written, <b>Incorrect</b> if the wording is wrong (then fix it), or <b>Irrelevant</b> if it should not be here." +
     '<details class="rules">' +
     "<summary>Numbering &amp; casing rules</summary>" +
     "<div>Ignore missing section numbers and differences in capitalization, only the wording matters, unless a number is present and wrong.</div>" +
@@ -511,8 +552,10 @@ function missingFields(task, rec) {
   if (rec.type_correct === null) m.push("Reasoning type: choose Correct or Incorrect");
   else if (rec.type_correct === false && !rec.type_fix) m.push("Reasoning type: pick the correct type");
   const mentions = task.mentions || [];
-  if (mentions.some((s, i) => !rec.mentions_judgments[i] || rec.mentions_judgments[i].correct === null)) {
-    m.push("Mentions: mark each section Correct or Incorrect");
+  if (mentions.some((s, i) => !rec.mentions_judgments[i] || !rec.mentions_judgments[i].state)) {
+    m.push("Mentions: mark each section Correct, Incorrect, or Irrelevant");
+  } else if (mentions.some((s, i) => rec.mentions_judgments[i].state === "incorrect" && !(rec.mentions_judgments[i].fix || "").trim())) {
+    m.push("Mentions: write the corrected name for any marked Incorrect");
   }
   return m;
 }
@@ -534,7 +577,7 @@ function isEmpty(task, rec) {
   if (rec.question_correct !== null || rec.answer_correct !== null ||
       rec.reasoning_correct !== null || rec.type_correct !== null) return false;
   if ((rec.mentions_added || []).length) return false;
-  if ((task.mentions || []).some((s, i) => rec.mentions_judgments[i] && rec.mentions_judgments[i].correct !== null)) return false;
+  if ((task.mentions || []).some((s, i) => rec.mentions_judgments[i] && rec.mentions_judgments[i].state)) return false;
   return true;
 }
 

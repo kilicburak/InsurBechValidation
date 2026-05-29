@@ -1,0 +1,29 @@
+/* Edit this file to adjust the look. No other file needs changing. */
+:root {
+  /* Font family for the whole app */
+  --font-family: ui-serif, Georgia, "Times New Roman", serif;
+
+  /* Main content text size (question, answer, reasoning, mentions) */
+  --fs-value: 18px;
+  /* Section labels (small uppercase headings) */
+  --fs-label: 11px;
+  /* Helper / explanatory text */
+  --fs-helper: 13px;
+  /* Correct / Incorrect buttons */
+  --fs-button: 14px;
+  /* Correction option buttons (e.g. reasoning type choices) */
+  --fs-option: 16px;
+  /* Footer navigation and export buttons */
+  --fs-nav: 12px;
+
+  /* Colors */
+  --bg: #f4f1ea;
+  --panel: #fffdf8;
+  --ink: #1b1a17;
+  --muted: #6f6a60;
+  --line: #d9d3c6;
+  --accent: #2f5d50;
+  --bad: #9c3b2e;
+  --good: #2f5d50;
+  --chip: #ece7dc;
+}
