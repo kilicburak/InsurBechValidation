@@ -203,6 +203,7 @@ function saveStore() { localStorage.setItem(storeKey(docEntry.id), JSON.stringif
 function blank(task) {
   return {
     id: task.id,
+    question_correct: null, question_fix: "",
     answer_correct: null, answer_fix: null,
     reasoning_correct: null, reasoning_fix: "",
     mentions_judgments: (task.mentions || []).map(() => ({ correct: null, fix: "" })),
@@ -223,25 +224,32 @@ function record(task) {
   results[task.id] = merged;
   return merged;
 }
-function isDone(rec) { return rec && rec.answer_correct !== null && rec.reasoning_correct !== null && rec.type_correct !== null; }
+function isDone(rec) { return rec && rec.question_correct !== null && rec.answer_correct !== null && rec.reasoning_correct !== null && rec.type_correct !== null; }
 
-function gate(field, value, rec) {
+function gate(field, value, valueText, options, rec) {
   rec[field + "_correct"] = value;
-  if (value && field === "answer") rec.answer_fix = null;
-  if (value && field === "type") rec.type_fix = null;
-  if (value && field === "reasoning") rec.reasoning_fix = "";
+  if (value) {
+    if (Array.isArray(options) || options === "choice") rec[field + "_fix"] = null;
+    else rec[field + "_fix"] = "";
+  } else if (options === "text" && !rec[field + "_fix"]) {
+    rec[field + "_fix"] = valueText;
+  }
   saveStore();
   renderForm();
 }
 
-function buildGate(label, valueText, field, options, rec, def) {
+function buildGate(label, valueText, field, options, rec, def, showValue) {
   const wrap = document.createElement("div");
-  const lab = document.createElement("div");
-  lab.className = "label"; lab.textContent = label;
-  wrap.appendChild(lab);
-  const val = document.createElement("div");
-  val.className = "value"; val.textContent = valueText;
-  wrap.appendChild(val);
+  if (label) {
+    const lab = document.createElement("div");
+    lab.className = "label"; lab.textContent = label;
+    wrap.appendChild(lab);
+  }
+  if (showValue !== false) {
+    const val = document.createElement("div");
+    val.className = "value"; val.textContent = valueText;
+    wrap.appendChild(val);
+  }
   if (def) {
     const d = document.createElement("div");
     d.className = "typedef"; d.textContent = def;
@@ -253,11 +261,11 @@ function buildGate(label, valueText, field, options, rec, def) {
   const ok = document.createElement("button");
   ok.textContent = "Correct";
   if (correct === true) ok.className = "sel-good";
-  ok.onclick = () => gate(field, true, rec);
+  ok.onclick = () => gate(field, true, valueText, options, rec);
   const bad = document.createElement("button");
   bad.textContent = "Incorrect";
   if (correct === false) bad.className = "sel-bad";
-  bad.onclick = () => gate(field, false, rec);
+  bad.onclick = () => gate(field, false, valueText, options, rec);
   g.appendChild(ok); g.appendChild(bad);
   wrap.appendChild(g);
   const fix = document.createElement("div");
@@ -277,9 +285,9 @@ function buildGate(label, valueText, field, options, rec, def) {
   } else if (options === "text") {
     const ta = document.createElement("textarea");
     ta.rows = 5;
-    ta.value = rec.reasoning_fix || "";
-    ta.placeholder = "Write the corrected reasoning";
-    ta.oninput = () => { rec.reasoning_fix = ta.value; saveStore(); };
+    ta.value = rec[field + "_fix"] || "";
+    ta.placeholder = "Write the corrected version";
+    ta.oninput = () => { rec[field + "_fix"] = ta.value; saveStore(); };
     fix.appendChild(ta);
   }
   if (fix.childNodes.length) wrap.appendChild(fix);
@@ -390,6 +398,7 @@ function renderForm() {
   const q = document.createElement("div");
   q.className = "question"; q.textContent = task.question;
   form.appendChild(qLab); form.appendChild(q);
+  form.appendChild(buildGate("", task.question, "question", "text", rec, null, false));
 
   form.appendChild(buildGate("Answer", task.answer, "answer", null, rec, null));
   form.appendChild(buildGate("Reasoning", task.reasoning, "reasoning", "text", rec, null));
