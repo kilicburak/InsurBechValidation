@@ -55,7 +55,7 @@
   .topbar { padding: 12px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .topbar .back { font: inherit; font-size: 13px; background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; }
   .topbar h1 { font-size: 15px; margin: 0; font-weight: 600; }
-  .counter { font-size: 13px; color: var(--muted); }
+  .counter { font-size: 16px; font-weight: 600; color: var(--ink); }
   .tzoom { display: flex; gap: 4px; }
   .tzoom button { font: inherit; font-size: 12px; padding: 3px 9px; border-radius: 6px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .tzoom button:hover { border-color: var(--accent); }
@@ -67,7 +67,7 @@
   .typedef { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
   .qhelper { font-size: 13px; color: var(--muted); background: #f0ede4; border-left: 3px solid var(--accent); padding: 8px 11px; border-radius: 0 6px 6px 0; margin: 8px 0; line-height: 1.4; }
   .formglossary { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
-  .formglossary summary { cursor: pointer; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); list-style: none; }
+  .formglossary summary { cursor: pointer; color: var(--accent); list-style: none; font-size: 12.5px; }
   .formglossary summary::-webkit-details-marker { display: none; }
   .formglossary summary::before { content: "\25B8"; display: inline-block; margin-right: 6px; transition: transform .15s ease; }
   .formglossary[open] summary::before { transform: rotate(90deg); }
@@ -75,6 +75,9 @@
   .formglossary div.g:first-of-type { margin-top: 10px; }
   .formglossary b { color: var(--accent); }
   .gate { display: flex; gap: 8px; margin-top: 7px; }
+  .gate.needs button { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+  .fielderr { color: var(--bad); font-size: 12px; margin-top: 5px; }
+  .mrow.needs { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
   .gate button, .fix button { font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .gate button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
   .gate button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
@@ -117,6 +120,8 @@
   .nav button, .footer .save { font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; color: var(--ink); }
   .footer .save { background: var(--accent); color: #fff; border-color: var(--accent); }
   .nav { display: flex; gap: 8px; }
+  .skipbtn { font: inherit; font-size: 12px; padding: 7px 12px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; margin-left: auto; margin-right: 8px; }
+  .skipbtn:hover { color: var(--bad); border-color: var(--bad); }
   .empty { color: var(--muted); padding: 24px; }
 </style>
 </head>
@@ -186,10 +191,8 @@
         <button id="prev">Prev</button>
         <button id="next">Next</button>
       </div>
-      <div class="nav">
-        <button id="export">Export this doc</button>
-        <button class="save" id="exportAllDoc">Export all</button>
-      </div>
+      <button id="skip" class="skipbtn">Skip item</button>
+      <button class="save" id="export">Export this doc</button>
     </div>
   </div>
 </div>
@@ -218,6 +221,7 @@ let tasks = [];
 let results = {};
 let current = 0;
 let addOpen = false;
+let showErrors = false;
 let formZoom = parseFloat(localStorage.getItem("form_zoom")) || 0.7;
 
 function applyFormZoom() {
@@ -257,6 +261,7 @@ function blank(task) {
     mentions_judgments: (task.mentions || []).map(() => ({ correct: null, fix: "" })),
     mentions_added: [],
     type_correct: null, type_fix: null,
+    skipped: false,
   };
 }
 function record(task) {
@@ -275,12 +280,17 @@ function record(task) {
 function isDone(rec) { return rec && rec.question_correct !== null && rec.answer_correct !== null && rec.reasoning_correct !== null && rec.type_correct !== null; }
 
 function gate(field, value, valueText, options, rec) {
-  rec[field + "_correct"] = value;
-  if (value) {
-    if (Array.isArray(options) || options === "choice") rec[field + "_fix"] = null;
-    else rec[field + "_fix"] = "";
-  } else if (options === "text" && !rec[field + "_fix"]) {
-    rec[field + "_fix"] = valueText;
+  rec.skipped = false;
+  if (rec[field + "_correct"] === value) {
+    rec[field + "_correct"] = null;
+    rec[field + "_fix"] = options === "text" ? "" : null;
+  } else {
+    rec[field + "_correct"] = value;
+    if (value) {
+      rec[field + "_fix"] = (Array.isArray(options) || options === "choice") ? null : "";
+    } else if (options === "text" && !rec[field + "_fix"]) {
+      rec[field + "_fix"] = valueText;
+    }
   }
   saveStore();
   renderForm();
@@ -315,6 +325,7 @@ function buildGate(label, valueText, field, options, rec, def, showValue) {
   if (correct === false) bad.className = "sel-bad";
   bad.onclick = () => gate(field, false, valueText, options, rec);
   g.appendChild(ok); g.appendChild(bad);
+  if (showErrors && correct === null) g.classList.add("needs");
   wrap.appendChild(g);
   const fix = document.createElement("div");
   fix.className = "fix" + (correct === false ? "" : " hidden");
@@ -339,6 +350,17 @@ function buildGate(label, valueText, field, options, rec, def, showValue) {
     fix.appendChild(ta);
   }
   if (fix.childNodes.length) wrap.appendChild(fix);
+  if (showErrors) {
+    let msg = null;
+    if (correct === null) msg = "Choose Correct or Incorrect";
+    else if (correct === false && options === "text" && !(rec[field + "_fix"] || "").trim()) msg = "Write the corrected version";
+    else if (correct === false && Array.isArray(options) && !rec[field + "_fix"]) msg = "Pick the correct option";
+    if (msg) {
+      const e = document.createElement("div");
+      e.className = "fielderr"; e.textContent = msg;
+      wrap.appendChild(e);
+    }
+  }
   return wrap;
 }
 
@@ -353,7 +375,7 @@ function buildMentions(task, rec) {
     row.className = "mblock";
 
     const top = document.createElement("div");
-    top.className = "mrow" + (j.correct === false ? " wrong" : "");
+    top.className = "mrow" + (j.correct === false ? " wrong" : "") + (showErrors && j.correct === null ? " needs" : "");
     const txt = document.createElement("span");
     txt.className = "mtext"; txt.textContent = s;
     const acts = document.createElement("div");
@@ -361,11 +383,11 @@ function buildMentions(task, rec) {
     const ok = document.createElement("button");
     ok.textContent = "Correct";
     if (j.correct === true) ok.className = "sel-good";
-    ok.onclick = () => { j.correct = true; j.fix = ""; saveStore(); renderForm(); };
+    ok.onclick = () => { j.correct = j.correct === true ? null : true; j.fix = ""; rec.skipped = false; saveStore(); renderForm(); };
     const bad = document.createElement("button");
     bad.textContent = "Incorrect";
     if (j.correct === false) bad.className = "sel-bad";
-    bad.onclick = () => { j.correct = false; if (!j.fix) j.fix = s; saveStore(); renderForm(); };
+    bad.onclick = () => { j.correct = j.correct === false ? null : false; rec.skipped = false; saveStore(); renderForm(); };
     acts.appendChild(ok); acts.appendChild(bad);
     top.appendChild(txt); top.appendChild(acts);
     row.appendChild(top);
@@ -479,7 +501,56 @@ function renderForm() {
   form.appendChild(gl);
 }
 
+function missingFields(task, rec) {
+  const m = [];
+  if (rec.question_correct === null) m.push("Question: choose Correct or Incorrect");
+  else if (rec.question_correct === false && !(rec.question_fix || "").trim()) m.push("Question: write the corrected version");
+  if (rec.answer_correct === null) m.push("Answer: choose Correct or Incorrect");
+  if (rec.reasoning_correct === null) m.push("Reasoning: choose Correct or Incorrect");
+  else if (rec.reasoning_correct === false && !(rec.reasoning_fix || "").trim()) m.push("Reasoning: write the corrected version");
+  if (rec.type_correct === null) m.push("Reasoning type: choose Correct or Incorrect");
+  else if (rec.type_correct === false && !rec.type_fix) m.push("Reasoning type: pick the correct type");
+  const mentions = task.mentions || [];
+  if (mentions.some((s, i) => !rec.mentions_judgments[i] || rec.mentions_judgments[i].correct === null)) {
+    m.push("Mentions: mark each section Correct or Incorrect");
+  }
+  return m;
+}
+
+function skip() {
+  const task = tasks[current];
+  const fresh = blank(task);
+  fresh.skipped = true;
+  results[task.id] = fresh;
+  saveStore();
+  showErrors = false;
+  current = Math.min(tasks.length - 1, current + 1);
+  addOpen = false;
+  document.getElementById("formScroll").scrollTop = 0;
+  renderForm();
+}
+
+function isEmpty(task, rec) {
+  if (rec.question_correct !== null || rec.answer_correct !== null ||
+      rec.reasoning_correct !== null || rec.type_correct !== null) return false;
+  if ((rec.mentions_added || []).length) return false;
+  if ((task.mentions || []).some((s, i) => rec.mentions_judgments[i] && rec.mentions_judgments[i].correct !== null)) return false;
+  return true;
+}
+
 function go(delta) {
+  if (delta > 0) {
+    const task = tasks[current];
+    const miss = missingFields(task, record(task));
+    if (miss.length) {
+      showErrors = true;
+      renderForm();
+      const el = document.querySelector(".fielderr, .mrow.needs");
+      if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+  }
+  showErrors = false;
   current = Math.max(0, Math.min(tasks.length - 1, current + delta));
   addOpen = false;
   document.getElementById("formScroll").scrollTop = 0;
@@ -573,6 +644,7 @@ function openDoc(entry) {
   tasks = buildTasks(entry);
   current = 0;
   addOpen = false;
+  showErrors = false;
   document.getElementById("docTitle").textContent = entry.title;
   document.getElementById("search").value = "";
   document.getElementById("matches").textContent = "";
@@ -662,10 +734,10 @@ function initDragger() {
 
 async function init() {
   document.getElementById("prev").onclick = () => go(-1);
+  document.getElementById("skip").onclick = skip;
   document.getElementById("next").onclick = () => go(1);
   document.getElementById("export").onclick = exportJson;
   document.getElementById("exportAll").onclick = exportAll;
-  document.getElementById("exportAllDoc").onclick = exportAll;
   document.getElementById("back").onclick = showChooser;
   document.getElementById("zoomIn").onclick = () => { if (pdfViewer) pdfViewer.currentScale *= 1.15; };
   document.getElementById("zoomOut").onclick = () => { if (pdfViewer) pdfViewer.currentScale /= 1.15; };
