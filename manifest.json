@@ -1,9 +1,19 @@
 {
+  "categories": [
+    "Car Insurance",
+    "Home Insurance",
+    "Medical and Student Insurance",
+    "Travel Insurance",
+    "Disability Insurance",
+    "Pet Insurance",
+    "Life Insurance"
+  ],
   "docs": [
     {
       "id": "doc-01",
       "title": "doc-01",
-      "pdf": "docs/doc-01.pdf",
+      "category": "Car Insurance",
+      "pdf": "docs/Car_Insurance/doc-01.pdf",
       "count": 29,
       "tasks": [
         {
@@ -569,7 +579,8 @@
     {
       "id": "doc-02",
       "title": "doc-02",
-      "pdf": "docs/doc-02.pdf",
+      "category": "Car Insurance",
+      "pdf": "docs/Car_Insurance/doc-02.pdf",
       "count": 26,
       "tasks": [
         {
@@ -1066,7 +1077,8 @@
     {
       "id": "doc-03",
       "title": "doc-03",
-      "pdf": "docs/doc-03.pdf",
+      "category": "Car Insurance",
+      "pdf": "docs/Car_Insurance/doc-03.pdf",
       "count": 31,
       "tasks": [
         {
@@ -1647,7 +1659,8 @@
     {
       "id": "doc-04",
       "title": "doc-04",
-      "pdf": "docs/doc-04.pdf",
+      "category": "Car Insurance",
+      "pdf": "docs/Car_Insurance/doc-04.pdf",
       "count": 26,
       "tasks": [
         {
@@ -2133,7 +2146,8 @@
     {
       "id": "doc-05",
       "title": "doc-05",
-      "pdf": "docs/doc-05.pdf",
+      "category": "Car Insurance",
+      "pdf": "docs/Car_Insurance/doc-05.pdf",
       "count": 27,
       "tasks": [
         {
@@ -2637,7 +2651,8 @@
     {
       "id": "doc-06",
       "title": "doc-06",
-      "pdf": "docs/doc-06.pdf",
+      "category": "Home Insurance",
+      "pdf": "docs/Home_Insurance/doc-06.pdf",
       "count": 35,
       "tasks": [
         {
@@ -3296,7 +3311,8 @@
     {
       "id": "doc-07",
       "title": "doc-07",
-      "pdf": "docs/doc-07.pdf",
+      "category": "Home Insurance",
+      "pdf": "docs/Home_Insurance/doc-07.pdf",
       "count": 35,
       "tasks": [
         {
@@ -3953,7 +3969,8 @@
     {
       "id": "doc-08",
       "title": "doc-08",
-      "pdf": "docs/doc-08.pdf",
+      "category": "Home Insurance",
+      "pdf": "docs/Home_Insurance/doc-08.pdf",
       "count": 34,
       "tasks": [
         {
@@ -4593,7 +4610,8 @@
     {
       "id": "doc-09",
       "title": "doc-09",
-      "pdf": "docs/doc-09.pdf",
+      "category": "Medical and Student Insurance",
+      "pdf": "docs/Medical_and_Student_Insurance/doc-09.pdf",
       "count": 35,
       "tasks": [
         {
@@ -5272,7 +5290,8 @@
     {
       "id": "doc-10",
       "title": "doc-10",
-      "pdf": "docs/doc-10.pdf",
+      "category": "Medical and Student Insurance",
+      "pdf": "docs/Medical_and_Student_Insurance/doc-10.pdf",
       "count": 33,
       "tasks": [
         {
@@ -5919,7 +5938,8 @@
     {
       "id": "doc-11",
       "title": "doc-11",
-      "pdf": "docs/doc-11.pdf",
+      "category": "Medical and Student Insurance",
+      "pdf": "docs/Medical_and_Student_Insurance/doc-11.pdf",
       "count": 35,
       "tasks": [
         {
@@ -6584,7 +6604,8 @@
     {
       "id": "doc-12",
       "title": "doc-12",
-      "pdf": "docs/doc-12.pdf",
+      "category": "Travel Insurance",
+      "pdf": "docs/Travel_Insurance/doc-12.pdf",
       "count": 34,
       "tasks": [
         {
@@ -7221,7 +7242,8 @@
     {
       "id": "doc-13",
       "title": "doc-13",
-      "pdf": "docs/doc-13.pdf",
+      "category": "Travel Insurance",
+      "pdf": "docs/Travel_Insurance/doc-13.pdf",
       "count": 34,
       "tasks": [
         {
@@ -7854,7 +7876,8 @@
     {
       "id": "doc-14",
       "title": "doc-14",
-      "pdf": "docs/doc-14.pdf",
+      "category": "Travel Insurance",
+      "pdf": "docs/Travel_Insurance/doc-14.pdf",
       "count": 35,
       "tasks": [
         {
@@ -8526,7 +8549,8 @@
     {
       "id": "doc-15",
       "title": "doc-15",
-      "pdf": "docs/doc-15.pdf",
+      "category": "Travel Insurance",
+      "pdf": "docs/Travel_Insurance/doc-15.pdf",
       "count": 36,
       "tasks": [
         {
@@ -9194,7 +9218,8 @@
     {
       "id": "doc-16",
       "title": "doc-16",
-      "pdf": "docs/doc-16.pdf",
+      "category": "Disability Insurance",
+      "pdf": "docs/Disability_Insurance/doc-16.pdf",
       "count": 35,
       "tasks": [
         {
@@ -9867,7 +9892,8 @@
     {
       "id": "doc-17",
       "title": "doc-17",
-      "pdf": "docs/doc-17.pdf",
+      "category": "Disability Insurance",
+      "pdf": "docs/Disability_Insurance/doc-17.pdf",
       "count": 32,
       "tasks": [
         {
@@ -10475,7 +10501,8 @@
     {
       "id": "doc-18",
       "title": "doc-18",
-      "pdf": "docs/doc-18.pdf",
+      "category": "Disability Insurance",
+      "pdf": "docs/Disability_Insurance/doc-18.pdf",
       "count": 34,
       "tasks": [
         {
@@ -11113,7 +11140,8 @@
     {
       "id": "doc-19",
       "title": "doc-19",
-      "pdf": "docs/doc-19.pdf",
+      "category": "Pet Insurance",
+      "pdf": "docs/Pet_Insurance/doc-19.pdf",
       "count": 36,
       "tasks": [
         {
@@ -11833,7 +11861,8 @@
     {
       "id": "doc-20",
       "title": "doc-20",
-      "pdf": "docs/doc-20.pdf",
+      "category": "Pet Insurance",
+      "pdf": "docs/Pet_Insurance/doc-20.pdf",
       "count": 35,
       "tasks": [
         {
@@ -12504,7 +12533,8 @@
     {
       "id": "doc-21",
       "title": "doc-21",
-      "pdf": "docs/doc-21.pdf",
+      "category": "Pet Insurance",
+      "pdf": "docs/Pet_Insurance/doc-21.pdf",
       "count": 34,
       "tasks": [
         {
@@ -13156,7 +13186,8 @@
     {
       "id": "doc-22",
       "title": "doc-22",
-      "pdf": "docs/doc-22.pdf",
+      "category": "Life Insurance",
+      "pdf": "docs/Life_Insurance/doc-22.pdf",
       "count": 38,
       "tasks": [
         {
@@ -13859,7 +13890,8 @@
     {
       "id": "doc-23",
       "title": "doc-23",
-      "pdf": "docs/doc-23.pdf",
+      "category": "Life Insurance",
+      "pdf": "docs/Life_Insurance/doc-23.pdf",
       "count": 36,
       "tasks": [
         {
@@ -14523,7 +14555,8 @@
     {
       "id": "doc-24",
       "title": "doc-24",
-      "pdf": "docs/doc-24.pdf",
+      "category": "Life Insurance",
+      "pdf": "docs/Life_Insurance/doc-24.pdf",
       "count": 33,
       "tasks": [
         {
@@ -15138,7 +15171,8 @@
     {
       "id": "doc-25",
       "title": "doc-25",
-      "pdf": "docs/doc-25.pdf",
+      "category": "Life Insurance",
+      "pdf": "docs/Life_Insurance/doc-25.pdf",
       "count": 30,
       "tasks": [
         {

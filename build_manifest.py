@@ -7,8 +7,44 @@ from glob import glob
 import pandas
 
 
+CATEGORIES = [
+    ((1, 5), "Car Insurance"),
+    ((6, 8), "Home Insurance"),
+    ((9, 11), "Medical and Student Insurance"),
+    ((12, 15), "Travel Insurance"),
+    ((16, 18), "Disability Insurance"),
+    ((19, 21), "Pet Insurance"),
+    ((22, 25), "Life Insurance"),
+]
+
+
 def natural_key(value):
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", str(value))]
+
+
+def doc_number(doc_id):
+    nums = re.findall(r"\d+", doc_id)
+    return int(nums[0]) if nums else None
+
+
+def category_for(num):
+    for (lo, hi), name in CATEGORIES:
+        if num is not None and lo <= num <= hi:
+            return name
+    return "Other"
+
+
+def padded_id(doc_id, width):
+    return re.sub(r"[-_ ]?(\d+)", lambda m: "-" + m.group(1).zfill(width), doc_id)
+
+
+def find_pdf(pdf_dir, pid):
+    target = (pid + ".pdf").lower()
+    for root, _, files in os.walk(pdf_dir):
+        for f in files:
+            if f.lower() == target:
+                return os.path.join(root, f).replace(os.sep, "/")
+    return pdf_dir + "/" + pid + ".pdf"
 
 
 def read_rows(path):
@@ -43,10 +79,6 @@ def build_tasks(rows, answer_set, type_set):
     ]
 
 
-def padded_id(doc_id, width):
-    return re.sub(r"[-_ ]?(\d+)", lambda m: "-" + m.group(1).zfill(width), doc_id)
-
-
 def build_manifest(qa_dir, pdf_dir):
     files = sorted(glob(os.path.join(qa_dir, "*.xlsx")))
     all_rows = []
@@ -65,15 +97,20 @@ def build_manifest(qa_dir, pdf_dir):
     docs = []
     for doc_id, rows in grouped:
         pid = padded_id(doc_id, width)
+        num = doc_number(doc_id)
         docs.append({
             "id": pid,
             "title": pid,
-            "pdf": pdf_dir + "/" + pid + ".pdf",
+            "category": category_for(num),
+            "pdf": find_pdf(pdf_dir, pid),
             "count": len(rows),
             "tasks": build_tasks(rows, answer_set, type_set),
         })
     docs.sort(key=lambda d: natural_key(d["id"]))
-    return {"docs": docs}
+    order = [name for _, name in CATEGORIES if any(d["category"] == name for d in docs)]
+    if any(d["category"] == "Other" for d in docs):
+        order.append("Other")
+    return {"categories": order, "docs": docs}
 
 
 qa_dir = sys.argv[1] if len(sys.argv) > 1 else "qa_pairs"
@@ -82,4 +119,4 @@ out = sys.argv[3] if len(sys.argv) > 3 else "manifest.json"
 manifest = build_manifest(qa_dir, pdf_dir)
 with open(out, "w", encoding="utf-8") as fh:
     json.dump(manifest, fh, ensure_ascii=False, indent=2)
-print(out, len(manifest["docs"]), "docs")
+print(out, len(manifest["docs"]), "docs,", len(manifest["categories"]), "categories")

@@ -27,6 +27,12 @@
   .chooserbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   .chooserbar .label { margin: 0; }
   .chooserbar .save { font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  #grid { display: flex; flex-direction: column; gap: 14px; }
+  .catgroup { display: flex; flex-direction: column; gap: 10px; }
+  .cathead { font-size: 13px; font-weight: 600; letter-spacing: .04em; color: var(--accent); border-bottom: 1px solid var(--line); padding-bottom: 5px; cursor: pointer; list-style: none; }
+  .cathead::-webkit-details-marker { display: none; }
+  .cathead::before { content: "\25B8"; display: inline-block; margin-right: 7px; transition: transform .15s ease; }
+  .catgroup[open] .cathead::before { transform: rotate(90deg); }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, 140px); gap: 10px; justify-content: start; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 12px 13px; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
   .card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0,0,0,.08); }
@@ -221,6 +227,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
 
 let docs = [];
+let catOrder = [];
 let docEntry = null;
 let tasks = [];
 let results = {};
@@ -247,6 +254,7 @@ async function discover() {
   if (!res.ok) throw new Error("HTTP " + res.status + " for manifest.json");
   const data = await res.json();
   docs = (data.docs || []).slice().sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+  catOrder = data.categories || [];
 }
 
 function buildTasks(entry) {
@@ -661,7 +669,7 @@ async function loadPdf(url, attempt) {
   attempt = attempt || 0;
   initViewer();
   try {
-    const doc = await pdfjsLib.getDocument(url).promise;
+    const doc = await pdfjsLib.getDocument(encodeURI(url)).promise;
     pdfViewer.setDocument(doc);
     pdfViewer.linkService.setDocument(doc, null);
   } catch (e) {
@@ -702,7 +710,7 @@ function openDoc(entry) {
 
 function showChooser() {
   document.getElementById("app").classList.remove("on");
-  document.getElementById("chooser").style.display = "block";
+  document.getElementById("chooser").style.display = "flex";
   location.hash = "";
   renderGrid();
 }
@@ -714,26 +722,46 @@ function progressFor(entry) {
   return { done, total: entry.count };
 }
 
+function makeCard(entry) {
+  const p = progressFor(entry);
+  const card = document.createElement("div");
+  card.className = "card";
+  card.onclick = () => openDoc(entry);
+  const name = document.createElement("div");
+  name.className = "name"; name.textContent = entry.title;
+  const meta = document.createElement("div");
+  meta.className = "meta"; meta.textContent = p.done + " / " + p.total + " validated";
+  const bar = document.createElement("div");
+  bar.className = "bar";
+  const fill = document.createElement("i");
+  fill.style.width = (p.total ? (100 * p.done / p.total) : 0) + "%";
+  bar.appendChild(fill);
+  card.appendChild(name); card.appendChild(meta); card.appendChild(bar);
+  return card;
+}
+
 function renderGrid() {
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-  if (!docs.length) { grid.innerHTML = '<div class="empty">No documents in manifest.json.</div>'; return; }
-  docs.forEach((entry) => {
-    const p = progressFor(entry);
-    const card = document.createElement("div");
-    card.className = "card";
-    card.onclick = () => openDoc(entry);
-    const name = document.createElement("div");
-    name.className = "name"; name.textContent = entry.title;
-    const meta = document.createElement("div");
-    meta.className = "meta"; meta.textContent = p.done + " / " + p.total + " validated" + (entry.pdf ? "" : " · PDF missing");
-    const bar = document.createElement("div");
-    bar.className = "bar";
-    const fill = document.createElement("i");
-    fill.style.width = (p.total ? (100 * p.done / p.total) : 0) + "%";
-    bar.appendChild(fill);
-    card.appendChild(name); card.appendChild(meta); card.appendChild(bar);
-    grid.appendChild(card);
+  const root = document.getElementById("grid");
+  root.innerHTML = "";
+  if (!docs.length) { root.innerHTML = '<div class="empty">No documents in manifest.json.</div>'; return; }
+  const order = catOrder.length ? catOrder.slice() : [];
+  docs.forEach((d) => { if (!order.includes(d.category || "Other")) order.push(d.category || "Other"); });
+  order.forEach((cat, idx) => {
+    const inCat = docs.filter((d) => (d.category || "Other") === cat);
+    if (!inCat.length) return;
+    let done = 0, total = 0;
+    inCat.forEach((e) => { const p = progressFor(e); done += p.done; total += p.total; });
+    const section = document.createElement("details");
+    section.className = "catgroup";
+    if (idx === 0) section.open = true;
+    const head = document.createElement("summary");
+    head.className = "cathead";
+    head.textContent = cat + "  (" + done + "/" + total + ")";
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    inCat.forEach((entry) => grid.appendChild(makeCard(entry)));
+    section.appendChild(head); section.appendChild(grid);
+    root.appendChild(section);
   });
 }
 
