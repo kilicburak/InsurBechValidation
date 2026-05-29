@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Annotation Validator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --panel: #fffdf8;
+    --ink: #1b1a17;
+    --muted: #6f6a60;
+    --line: #d9d3c6;
+    --accent: #2f5d50;
+    --bad: #9c3b2e;
+    --good: #2f5d50;
+    --chip: #ece7dc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-serif, Georgia, "Times New Roman", serif;
+    color: var(--ink);
+    background: var(--bg);
+    height: 100vh;
+    overflow: hidden;
+  }
+  .app { display: grid; grid-template-columns: 1fr 460px; height: 100vh; }
+  .viewer { background: #2a2824; overflow: auto; padding: 16px; }
+  .viewer canvas { display: block; margin: 0 auto 12px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+  .side { background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  .topbar {
+    padding: 14px 18px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .topbar h1 { font-size: 15px; letter-spacing: .02em; margin: 0; font-weight: 600; }
+  .counter { font-size: 13px; color: var(--muted); }
+  .scroll { overflow: auto; padding: 18px; flex: 1; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
+  .question { font-size: 17px; line-height: 1.45; }
+  .model {
+    background: var(--chip); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; font-size: 14px; line-height: 1.5;
+  }
+  .gate { display: flex; gap: 8px; margin-top: 8px; }
+  .gate button, .fix button {
+    font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 999px;
+    border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer;
+  }
+  .gate button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
+  .gate button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
+  .fix { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--bad); background: #fbf2ef; }
+  .fix.hidden { display: none; }
+  .fix .opts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fix button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
+  textarea {
+    width: 100%; font: inherit; font-size: 14px; padding: 8px; border: 1px solid var(--line);
+    border-radius: 6px; resize: vertical; background: #fff; color: var(--ink);
+  }
+  .sections { display: flex; flex-direction: column; gap: 6px; }
+  .sec {
+    display: flex; align-items: center; gap: 9px; padding: 7px 10px;
+    border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 14px; cursor: pointer;
+  }
+  .sec input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .footer {
+    border-top: 1px solid var(--line); padding: 12px 18px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .nav button, .footer .save {
+    font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 6px;
+    border: 1px solid var(--line); background: #fff; cursor: pointer; color: var(--ink);
+  }
+  .footer .save { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .nav { display: flex; gap: 8px; }
+  .pageinfo { color: var(--muted); font-size: 12px; }
+  .empty { color: var(--muted); padding: 24px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="viewer" id="viewer"></div>
+  <div class="side">
+    <div class="topbar">
+      <h1>Annotation Validator</h1>
+      <span class="counter" id="counter"></span>
+    </div>
+    <div class="scroll" id="form"><div class="empty">Loading tasks…</div></div>
+    <div class="footer">
+      <div class="nav">
+        <button id="prev">Prev</button>
+        <button id="next">Next</button>
+      </div>
+      <button class="save" id="export">Export JSON</button>
+    </div>
+  </div>
+</div>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const STORE_KEY = "annotations_v1";
+let tasks = [];
+let results = {};
+let current = 0;
+let pdfCache = {};
+
+function loadStore() {
+  try { results = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+  catch { results = {}; }
+}
+function saveStore() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(results));
+}
+
+function blank(task) {
+  return {
+    id: task.id,
+    answer_correct: null,
+    answer_fix: null,
+    type_correct: null,
+    type_fix: null,
+    reasoning_correct: null,
+    reasoning_fix: "",
+    sections_confirmed: [],
+    sections_added: "",
+  };
+}
+
+function record(task) {
+  if (!results[task.id]) results[task.id] = blank(task);
+  return results[task.id];
+}
+
+async function renderPdf(url) {
+  const viewer = document.getElementById("viewer");
+  viewer.innerHTML = "";
+  let pdf = pdfCache[url];
+  if (!pdf) { pdf = await pdfjsLib.getDocument(url).promise; pdfCache[url] = pdf; }
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const page = await pdf.getPage(n);
+    const scale = 1.4;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    viewer.appendChild(canvas);
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+  }
+}
+
+function gate(field, value, rec, task) {
+  rec[field + "_correct"] = value;
+  if (field === "answer" && value) rec.answer_fix = null;
+  if (field === "type" && value) rec.type_fix = null;
+  if (field === "reasoning" && value) rec.reasoning_fix = "";
+  saveStore();
+  renderForm();
+}
+
+function buildGate(label, modelText, field, options, rec, task) {
+  const wrap = document.createElement("div");
+  const lab = document.createElement("div");
+  lab.className = "label";
+  lab.textContent = label;
+  wrap.appendChild(lab);
+
+  const model = document.createElement("div");
+  model.className = "model";
+  model.textContent = modelText;
+  wrap.appendChild(model);
+
+  const correct = rec[field + "_correct"];
+  const g = document.createElement("div");
+  g.className = "gate";
+  const ok = document.createElement("button");
+  ok.textContent = "Correct";
+  if (correct === true) ok.className = "sel-good";
+  ok.onclick = () => gate(field, true, rec, task);
+  const bad = document.createElement("button");
+  bad.textContent = "Incorrect";
+  if (correct === false) bad.className = "sel-bad";
+  bad.onclick = () => gate(field, false, rec, task);
+  g.appendChild(ok); g.appendChild(bad);
+  wrap.appendChild(g);
+
+  const fix = document.createElement("div");
+  fix.className = "fix" + (correct === false ? "" : " hidden");
+  if (options) {
+    const opts = document.createElement("div");
+    opts.className = "opts";
+    options.forEach((o) => {
+      const b = document.createElement("button");
+      b.textContent = o;
+      if (rec[field + "_fix"] === o) b.className = "sel";
+      b.onclick = () => { rec[field + "_fix"] = o; saveStore(); renderForm(); };
+      opts.appendChild(b);
+    });
+    fix.appendChild(opts);
+  } else {
+    const ta = document.createElement("textarea");
+    ta.rows = 5;
+    ta.value = rec.reasoning_fix || "";
+    ta.placeholder = "Write the corrected reasoning";
+    ta.oninput = () => { rec.reasoning_fix = ta.value; saveStore(); };
+    fix.appendChild(ta);
+  }
+  wrap.appendChild(fix);
+  return wrap;
+}
+
+function renderForm() {
+  const form = document.getElementById("form");
+  if (!tasks.length) { form.innerHTML = '<div class="empty">No tasks found.</div>'; return; }
+  const task = tasks[current];
+  const rec = record(task);
+  document.getElementById("counter").textContent =
+    (current + 1) + " / " + tasks.length;
+
+  form.innerHTML = "";
+
+  const qLab = document.createElement("div");
+  qLab.className = "label"; qLab.textContent = "Question";
+  const q = document.createElement("div");
+  q.className = "question"; q.textContent = task.question;
+  form.appendChild(qLab); form.appendChild(q);
+
+  form.appendChild(buildGate("Model answer", task.model_answer, "answer", task.answer_options, rec, task));
+  form.appendChild(buildGate("Reasoning type", task.model_type, "type", task.type_options, rec, task));
+  form.appendChild(buildGate("Reasoning", task.model_reasoning, "reasoning", null, rec, task));
+
+  const sLab = document.createElement("div");
+  sLab.className = "label"; sLab.textContent = "Sections used (check the correct ones)";
+  form.appendChild(sLab);
+  const secWrap = document.createElement("div");
+  secWrap.className = "sections";
+  task.sections.forEach((s) => {
+    const row = document.createElement("label");
+    row.className = "sec";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = rec.sections_confirmed.includes(s);
+    cb.onchange = () => {
+      const set = new Set(rec.sections_confirmed);
+      cb.checked ? set.add(s) : set.delete(s);
+      rec.sections_confirmed = [...set];
+      saveStore();
+    };
+    const txt = document.createElement("span");
+    txt.textContent = s;
+    row.appendChild(cb); row.appendChild(txt);
+    secWrap.appendChild(row);
+  });
+  form.appendChild(secWrap);
+
+  const aLab = document.createElement("div");
+  aLab.className = "label"; aLab.textContent = "Add or correct sections";
+  form.appendChild(aLab);
+  const addTa = document.createElement("textarea");
+  addTa.rows = 2;
+  addTa.value = rec.sections_added || "";
+  addTa.placeholder = "Comma separated";
+  addTa.oninput = () => { rec.sections_added = addTa.value; saveStore(); };
+  form.appendChild(addTa);
+
+  renderPdf(task.pdf);
+}
+
+function go(delta) {
+  current = Math.max(0, Math.min(tasks.length - 1, current + delta));
+  document.getElementById("form").scrollTop = 0;
+  renderForm();
+}
+
+function exportJson() {
+  const out = tasks.map((t) => ({ ...blank(t), ...(results[t.id] || {}) }));
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  a.href = URL.createObjectURL(blob);
+  a.download = "annotations_" + stamp + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function init() {
+  loadStore();
+  try {
+    const res = await fetch("tasks.json");
+    tasks = await res.json();
+  } catch {
+    document.getElementById("form").innerHTML =
+      '<div class="empty">Could not load tasks.json.</div>';
+    return;
+  }
+  document.getElementById("prev").onclick = () => go(-1);
+  document.getElementById("next").onclick = () => go(1);
+  document.getElementById("export").onclick = exportJson;
+  renderForm();
+}
+init();
+</script>
+</body>
+</html>
