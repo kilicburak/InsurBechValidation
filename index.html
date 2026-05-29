@@ -460,7 +460,10 @@ function initViewer() {
   findController = new pdfjsViewer.PDFFindController({ eventBus, linkService });
   pdfViewer = new pdfjsViewer.PDFViewer({ container, eventBus, linkService, findController });
   linkService.setViewer(pdfViewer);
-  eventBus.on("pagesinit", () => { pdfViewer.currentScaleValue = "page-width"; });
+  eventBus.on("pagesinit", () => {
+    pdfViewer.currentScaleValue = "page-width";
+    setTimeout(() => { if (pdfViewer.pdfDocument) pdfViewer.currentScaleValue = "page-width"; }, 120);
+  });
   eventBus.on("updatefindmatchescount", (e) => showMatches(e.matchesCount));
   eventBus.on("updatefindcontrolstate", (e) => showMatches(e.matchesCount));
 }
@@ -507,7 +510,9 @@ function openDoc(entry) {
   document.getElementById("chooser").style.display = "none";
   document.getElementById("app").classList.add("on");
   location.hash = "doc=" + encodeURIComponent(entry.id);
-  if (entry.pdf) loadPdf(entry.pdf);
+  if (entry.pdf) {
+    requestAnimationFrame(() => requestAnimationFrame(() => loadPdf(entry.pdf)));
+  }
   renderForm();
 }
 
