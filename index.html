@@ -323,10 +323,13 @@ function buildGate(label, valueText, field, options, rec, def) {
 }
 
 function buildMentions(task, rec) {
+  if (!Array.isArray(rec.mentions_removed)) rec.mentions_removed = [];
+  if (!Array.isArray(rec.mentions_added)) rec.mentions_added = [];
+  const mentions = Array.isArray(task.mentions) ? task.mentions : [];
   const wrap = document.createElement("div");
   wrap.className = "mentions";
 
-  task.mentions.forEach((s) => {
+  mentions.forEach((s) => {
     const removed = rec.mentions_removed.includes(s);
     const row = document.createElement("div");
     row.className = "mrow" + (removed ? " removed" : "");
