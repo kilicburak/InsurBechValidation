@@ -471,15 +471,18 @@ function showMatches(mc) {
   else el.textContent = "";
 }
 
-async function loadPdf(url) {
+async function loadPdf(url, attempt) {
+  attempt = attempt || 0;
   initViewer();
   try {
     const doc = await pdfjsLib.getDocument(url).promise;
     pdfViewer.setDocument(doc);
     pdfViewer.linkService.setDocument(doc, null);
   } catch (e) {
-    document.getElementById("viewerContainer").innerHTML =
-      '<div style="color:#efe9dd;padding:24px">Could not load PDF: ' + url + '</div>';
+    if (attempt < 3) {
+      await new Promise((r) => setTimeout(r, 400));
+      return loadPdf(url, attempt + 1);
+    }
   }
 }
 
@@ -609,7 +612,8 @@ async function init() {
     if (entry) openDoc(entry);
   }
 }
-init();
+if (document.readyState === "complete") init();
+else window.addEventListener("load", init);
 </script>
 </body>
 </html>
