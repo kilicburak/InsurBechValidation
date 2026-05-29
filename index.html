@@ -4,89 +4,71 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Annotation Validator</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
-    --bg: #f4f1ea;
-    --panel: #fffdf8;
-    --ink: #1b1a17;
-    --muted: #6f6a60;
-    --line: #d9d3c6;
-    --accent: #2f5d50;
-    --bad: #9c3b2e;
-    --good: #2f5d50;
-    --chip: #ece7dc;
+    --bg: #f4f1ea; --panel: #fffdf8; --ink: #1b1a17; --muted: #6f6a60;
+    --line: #d9d3c6; --accent: #2f5d50; --bad: #9c3b2e; --good: #2f5d50; --chip: #ece7dc;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: ui-serif, Georgia, "Times New Roman", serif;
-    color: var(--ink);
-    background: var(--bg);
-    height: 100vh;
-    overflow: hidden;
-  }
-  .app { display: grid; grid-template-columns: 1fr 460px; height: 100vh; }
-  .viewer { background: #2a2824; overflow: auto; padding: 16px; }
-  .viewer canvas { display: block; margin: 0 auto 12px; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+  body { margin: 0; font-family: ui-serif, Georgia, "Times New Roman", serif; color: var(--ink); background: var(--bg); height: 100vh; overflow: hidden; }
+  .chooser { height: 100vh; overflow: auto; padding: 48px 32px; }
+  .chooser h1 { font-size: 26px; margin: 0 0 4px; }
+  .chooser p { color: var(--muted); margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; max-width: 960px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(0,0,0,.08); }
+  .card .name { font-size: 17px; font-weight: 600; }
+  .card .meta { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .card .bar { height: 5px; background: var(--chip); border-radius: 99px; margin-top: 12px; overflow: hidden; }
+  .card .bar i { display: block; height: 100%; background: var(--accent); width: 0; }
+  .app { display: none; grid-template-columns: 1fr 460px; height: 100vh; }
+  .app.on { display: grid; }
+  .viewer { border: none; width: 100%; height: 100vh; background: #2a2824; }
   .side { background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-  .topbar {
-    padding: 14px 18px; border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  }
-  .topbar h1 { font-size: 15px; letter-spacing: .02em; margin: 0; font-weight: 600; }
+  .topbar { padding: 12px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .topbar .back { font: inherit; font-size: 13px; background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; }
+  .topbar h1 { font-size: 15px; margin: 0; font-weight: 600; }
   .counter { font-size: 13px; color: var(--muted); }
   .scroll { overflow-y: auto; padding: 18px; flex: 1; min-height: 0; }
   .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; }
   .question { font-size: 17px; line-height: 1.45; }
-  .model {
-    background: var(--chip); border: 1px solid var(--line); border-radius: 8px;
-    padding: 10px 12px; font-size: 14px; line-height: 1.5;
-  }
+  .value { background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; line-height: 1.5; }
   .gate { display: flex; gap: 8px; margin-top: 8px; }
-  .gate button, .fix button {
-    font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 999px;
-    border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer;
-  }
+  .gate button, .fix button { font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .gate button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
   .gate button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
   .fix { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--bad); background: #fbf2ef; }
   .fix.hidden { display: none; }
   .fix .opts { display: flex; gap: 8px; flex-wrap: wrap; }
   .fix button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
-  textarea {
-    width: 100%; font: inherit; font-size: 14px; padding: 8px; border: 1px solid var(--line);
-    border-radius: 6px; resize: vertical; background: #fff; color: var(--ink);
-  }
-  .sections { display: flex; flex-direction: column; gap: 6px; }
-  .sec {
-    display: flex; align-items: center; gap: 9px; padding: 7px 10px;
-    border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 14px; cursor: pointer;
-  }
+  textarea { width: 100%; font: inherit; font-size: 14px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; resize: vertical; background: #fff; color: var(--ink); }
+  .mentions { display: flex; flex-direction: column; gap: 6px; }
+  .sec { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 14px; cursor: pointer; }
   .sec input { width: 16px; height: 16px; accent-color: var(--accent); }
-  .footer {
-    border-top: 1px solid var(--line); padding: 12px 18px;
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  }
-  .nav button, .footer .save {
-    font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 6px;
-    border: 1px solid var(--line); background: #fff; cursor: pointer; color: var(--ink);
-  }
+  .footer { border-top: 1px solid var(--line); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .nav button, .footer .save { font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; color: var(--ink); }
   .footer .save { background: var(--accent); color: #fff; border-color: var(--accent); }
   .nav { display: flex; gap: 8px; }
-  .pageinfo { color: var(--muted); font-size: 12px; }
   .empty { color: var(--muted); padding: 24px; }
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="viewer" id="viewer"></div>
+<div class="chooser" id="chooser">
+  <h1>Annotation Validator</h1>
+  <p>Choose a document to validate.</p>
+  <div class="grid" id="grid"><div class="empty">Loading documents…</div></div>
+</div>
+
+<div class="app" id="app">
+  <iframe class="viewer" id="viewer" title="PDF"></iframe>
   <div class="side">
     <div class="topbar">
-      <h1>Annotation Validator</h1>
+      <button class="back" id="back">&larr; Documents</button>
+      <h1 id="docTitle"></h1>
       <span class="counter" id="counter"></span>
     </div>
-    <div class="scroll" id="form"><div class="empty">Loading tasks…</div></div>
+    <div class="scroll" id="form"></div>
     <div class="footer">
       <div class="nav">
         <button id="prev">Prev</button>
@@ -96,95 +78,131 @@
     </div>
   </div>
 </div>
-<script>
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-const STORE_KEY = "annotations_v1";
+<script>
+const DOCS_DIR = "docs";
+
+let docs = [];
+let answerSet = [];
+let typeSet = [];
+let docEntry = null;
 let tasks = [];
 let results = {};
 let current = 0;
-let pdfCache = {};
 
-function loadStore() {
-  try { results = JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
-  catch { results = {}; }
+function repoInfo() {
+  const host = location.hostname;
+  const owner = host.split(".")[0];
+  const seg = location.pathname.split("/").filter(Boolean)[0];
+  const repo = seg && !seg.endsWith(".html") ? seg : host;
+  return { owner, repo };
 }
-function saveStore() {
-  localStorage.setItem(STORE_KEY, JSON.stringify(results));
+
+async function listFolder() {
+  const { owner, repo } = repoInfo();
+  const url = "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + DOCS_DIR;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("listing failed");
+  return res.json();
 }
+
+function splitMentions(value) {
+  return String(value).split(",").map((p) => p.trim()).filter(Boolean);
+}
+
+async function parseXlsx(downloadUrl) {
+  const buf = await (await fetch(downloadUrl)).arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(sheet, { defval: "" });
+}
+
+function pdfFor(items, docId) {
+  const hit = items.find((f) => f.name.toLowerCase() === (docId + ".pdf").toLowerCase());
+  return hit ? hit.download_url : null;
+}
+
+async function discover() {
+  const items = await listFolder();
+  const xlsxFiles = items.filter((f) => /\.xlsx$/i.test(f.name));
+  const answers = new Set();
+  const types = new Set();
+  const entries = [];
+  for (const f of xlsxFiles) {
+    const rows = await parseXlsx(f.download_url);
+    if (!rows.length) continue;
+    const docId = String(rows[0].doc).trim();
+    rows.forEach((r) => { answers.add(String(r.answer)); types.add(String(r.reasoning_type)); });
+    entries.push({ id: docId, title: docId, pdf: pdfFor(items, docId), rows, count: rows.length });
+  }
+  answerSet = [...answers].sort();
+  typeSet = [...types].sort();
+  docs = entries.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+}
+
+function optionsExcluding(values, current) {
+  return values.filter((v) => v !== current);
+}
+
+function buildTasks(entry) {
+  return entry.rows.map((r, i) => ({
+    id: i,
+    question: r.question,
+    answer: String(r.answer),
+    reasoning: String(r.reason),
+    mentions: splitMentions(r.mentions),
+    reasoning_type: String(r.reasoning_type),
+    answer_options: optionsExcluding(answerSet, String(r.answer)),
+    type_options: optionsExcluding(typeSet, String(r.reasoning_type)),
+  }));
+}
+
+function storeKey(id) { return "annotations_" + id; }
+function loadStore(id) { try { results = JSON.parse(localStorage.getItem(storeKey(id))) || {}; } catch (e) { results = {}; } }
+function saveStore() { localStorage.setItem(storeKey(docEntry.id), JSON.stringify(results)); }
 
 function blank(task) {
   return {
     id: task.id,
-    answer_correct: null,
-    answer_fix: null,
-    type_correct: null,
-    type_fix: null,
-    reasoning_correct: null,
-    reasoning_fix: "",
-    sections_confirmed: [],
-    sections_added: "",
+    answer_correct: null, answer_fix: null,
+    reasoning_correct: null, reasoning_fix: "",
+    mentions_confirmed: [], mentions_added: "",
+    type_correct: null, type_fix: null,
   };
 }
+function record(task) { if (!results[task.id]) results[task.id] = blank(task); return results[task.id]; }
+function isDone(rec) { return rec && rec.answer_correct !== null && rec.reasoning_correct !== null && rec.type_correct !== null; }
 
-function record(task) {
-  if (!results[task.id]) results[task.id] = blank(task);
-  return results[task.id];
-}
-
-async function renderPdf(url) {
-  const viewer = document.getElementById("viewer");
-  viewer.innerHTML = "";
-  let pdf = pdfCache[url];
-  if (!pdf) { pdf = await pdfjsLib.getDocument(url).promise; pdfCache[url] = pdf; }
-  for (let n = 1; n <= pdf.numPages; n++) {
-    const page = await pdf.getPage(n);
-    const scale = 1.4;
-    const viewport = page.getViewport({ scale });
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    viewer.appendChild(canvas);
-    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
-  }
-}
-
-function gate(field, value, rec, task) {
+function gate(field, value, rec) {
   rec[field + "_correct"] = value;
-  if (field === "answer" && value) rec.answer_fix = null;
-  if (field === "type" && value) rec.type_fix = null;
-  if (field === "reasoning" && value) rec.reasoning_fix = "";
+  if (value && field === "answer") rec.answer_fix = null;
+  if (value && field === "type") rec.type_fix = null;
+  if (value && field === "reasoning") rec.reasoning_fix = "";
   saveStore();
   renderForm();
 }
 
-function buildGate(label, modelText, field, options, rec, task) {
+function buildGate(label, valueText, field, options, rec) {
   const wrap = document.createElement("div");
   const lab = document.createElement("div");
-  lab.className = "label";
-  lab.textContent = label;
+  lab.className = "label"; lab.textContent = label;
   wrap.appendChild(lab);
-
-  const model = document.createElement("div");
-  model.className = "model";
-  model.textContent = modelText;
-  wrap.appendChild(model);
-
+  const val = document.createElement("div");
+  val.className = "value"; val.textContent = valueText;
+  wrap.appendChild(val);
   const correct = rec[field + "_correct"];
   const g = document.createElement("div");
   g.className = "gate";
   const ok = document.createElement("button");
   ok.textContent = "Correct";
   if (correct === true) ok.className = "sel-good";
-  ok.onclick = () => gate(field, true, rec, task);
+  ok.onclick = () => gate(field, true, rec);
   const bad = document.createElement("button");
   bad.textContent = "Incorrect";
   if (correct === false) bad.className = "sel-bad";
-  bad.onclick = () => gate(field, false, rec, task);
+  bad.onclick = () => gate(field, false, rec);
   g.appendChild(ok); g.appendChild(bad);
   wrap.appendChild(g);
-
   const fix = document.createElement("div");
   fix.className = "fix" + (correct === false ? "" : " hidden");
   if (options) {
@@ -212,12 +230,10 @@ function buildGate(label, modelText, field, options, rec, task) {
 
 function renderForm() {
   const form = document.getElementById("form");
-  if (!tasks.length) { form.innerHTML = '<div class="empty">No tasks found.</div>'; return; }
+  if (!tasks.length) { form.innerHTML = '<div class="empty">No tasks.</div>'; return; }
   const task = tasks[current];
   const rec = record(task);
-  document.getElementById("counter").textContent =
-    (current + 1) + " / " + tasks.length;
-
+  document.getElementById("counter").textContent = (current + 1) + " / " + tasks.length;
   form.innerHTML = "";
 
   const qLab = document.createElement("div");
@@ -226,45 +242,44 @@ function renderForm() {
   q.className = "question"; q.textContent = task.question;
   form.appendChild(qLab); form.appendChild(q);
 
-  form.appendChild(buildGate("Model answer", task.model_answer, "answer", task.answer_options, rec, task));
-  form.appendChild(buildGate("Reasoning type", task.model_type, "type", task.type_options, rec, task));
-  form.appendChild(buildGate("Reasoning", task.model_reasoning, "reasoning", null, rec, task));
+  form.appendChild(buildGate("Answer", task.answer, "answer", task.answer_options, rec));
+  form.appendChild(buildGate("Reasoning", task.reasoning, "reasoning", null, rec));
 
-  const sLab = document.createElement("div");
-  sLab.className = "label"; sLab.textContent = "Sections used (check the correct ones)";
-  form.appendChild(sLab);
-  const secWrap = document.createElement("div");
-  secWrap.className = "sections";
-  task.sections.forEach((s) => {
+  const mLab = document.createElement("div");
+  mLab.className = "label"; mLab.textContent = "Mentions (check the correct ones)";
+  form.appendChild(mLab);
+  const mWrap = document.createElement("div");
+  mWrap.className = "mentions";
+  task.mentions.forEach((s) => {
     const row = document.createElement("label");
     row.className = "sec";
     const cb = document.createElement("input");
     cb.type = "checkbox";
-    cb.checked = rec.sections_confirmed.includes(s);
+    cb.checked = rec.mentions_confirmed.includes(s);
     cb.onchange = () => {
-      const set = new Set(rec.sections_confirmed);
+      const set = new Set(rec.mentions_confirmed);
       cb.checked ? set.add(s) : set.delete(s);
-      rec.sections_confirmed = [...set];
+      rec.mentions_confirmed = [...set];
       saveStore();
     };
     const txt = document.createElement("span");
     txt.textContent = s;
     row.appendChild(cb); row.appendChild(txt);
-    secWrap.appendChild(row);
+    mWrap.appendChild(row);
   });
-  form.appendChild(secWrap);
+  form.appendChild(mWrap);
 
   const aLab = document.createElement("div");
-  aLab.className = "label"; aLab.textContent = "Add or correct sections";
+  aLab.className = "label"; aLab.textContent = "Add or correct mentions";
   form.appendChild(aLab);
   const addTa = document.createElement("textarea");
   addTa.rows = 2;
-  addTa.value = rec.sections_added || "";
+  addTa.value = rec.mentions_added || "";
   addTa.placeholder = "Comma separated";
-  addTa.oninput = () => { rec.sections_added = addTa.value; saveStore(); };
+  addTa.oninput = () => { rec.mentions_added = addTa.value; saveStore(); };
   form.appendChild(addTa);
 
-  renderPdf(task.pdf);
+  form.appendChild(buildGate("Reasoning type", task.reasoning_type, "type", task.type_options, rec));
 }
 
 function go(delta) {
@@ -274,30 +289,84 @@ function go(delta) {
 }
 
 function exportJson() {
-  const out = tasks.map((t) => ({ ...blank(t), ...(results[t.id] || {}) }));
+  const out = tasks.map((t) => ({ doc: docEntry.id, ...blank(t), ...(results[t.id] || {}) }));
   const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   a.href = URL.createObjectURL(blob);
-  a.download = "annotations_" + stamp + ".json";
+  a.download = "annotations_" + docEntry.id + "_" + stamp + ".json";
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
+function openDoc(entry) {
+  docEntry = entry;
+  loadStore(entry.id);
+  tasks = buildTasks(entry);
+  current = 0;
+  document.getElementById("docTitle").textContent = entry.title;
+  document.getElementById("viewer").src = entry.pdf ? entry.pdf + "#toolbar=1&zoom=page-width" : "";
+  document.getElementById("chooser").style.display = "none";
+  document.getElementById("app").classList.add("on");
+  location.hash = "doc=" + encodeURIComponent(entry.id);
+  renderForm();
+}
+
+function showChooser() {
+  document.getElementById("app").classList.remove("on");
+  document.getElementById("chooser").style.display = "block";
+  document.getElementById("viewer").src = "";
+  location.hash = "";
+  renderGrid();
+}
+
+function progressFor(entry) {
+  let store = {};
+  try { store = JSON.parse(localStorage.getItem(storeKey(entry.id))) || {}; } catch (e) {}
+  const done = Object.values(store).filter(isDone).length;
+  return { done, total: entry.count };
+}
+
+function renderGrid() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  if (!docs.length) { grid.innerHTML = '<div class="empty">No documents found in /' + DOCS_DIR + '.</div>'; return; }
+  docs.forEach((entry) => {
+    const p = progressFor(entry);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.onclick = () => openDoc(entry);
+    const name = document.createElement("div");
+    name.className = "name"; name.textContent = entry.title;
+    const meta = document.createElement("div");
+    meta.className = "meta"; meta.textContent = p.done + " / " + p.total + " validated" + (entry.pdf ? "" : " · PDF missing");
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    const fill = document.createElement("i");
+    fill.style.width = (p.total ? (100 * p.done / p.total) : 0) + "%";
+    bar.appendChild(fill);
+    card.appendChild(name); card.appendChild(meta); card.appendChild(bar);
+    grid.appendChild(card);
+  });
+}
+
 async function init() {
-  loadStore();
-  try {
-    const res = await fetch("tasks.json");
-    tasks = await res.json();
-  } catch {
-    document.getElementById("form").innerHTML =
-      '<div class="empty">Could not load tasks.json.</div>';
-    return;
-  }
   document.getElementById("prev").onclick = () => go(-1);
   document.getElementById("next").onclick = () => go(1);
   document.getElementById("export").onclick = exportJson;
-  renderForm();
+  document.getElementById("back").onclick = showChooser;
+  try {
+    await discover();
+  } catch (e) {
+    document.getElementById("grid").innerHTML = '<div class="empty">Could not read /' + DOCS_DIR + ' from the repository.</div>';
+    return;
+  }
+  renderGrid();
+  const m = location.hash.match(/doc=([^&]+)/);
+  if (m) {
+    const entry = docs.find((e) => e.id === decodeURIComponent(m[1]));
+    if (entry) openDoc(entry);
+  }
 }
 init();
 </script>
