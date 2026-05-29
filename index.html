@@ -165,7 +165,7 @@
   <div class="chooser-right">
     <div class="chooserbar">
       <div class="label">Documents</div>
-      <button class="save" id="exportAll">Export all (merged)</button>
+      <button class="save" id="exportAll">Export all</button>
     </div>
     <div class="grid" id="grid"><div class="empty">Loading documents…</div></div>
   </div>
@@ -746,11 +746,13 @@ function renderGrid() {
   if (!docs.length) { root.innerHTML = '<div class="empty">No documents in manifest.json.</div>'; return; }
   const order = catOrder.length ? catOrder.slice() : [];
   docs.forEach((d) => { if (!order.includes(d.category || "Other")) order.push(d.category || "Other"); });
+  let grandDone = 0, grandTotal = 0;
   order.forEach((cat, idx) => {
     const inCat = docs.filter((d) => (d.category || "Other") === cat);
     if (!inCat.length) return;
     let done = 0, total = 0;
     inCat.forEach((e) => { const p = progressFor(e); done += p.done; total += p.total; });
+    grandDone += done; grandTotal += total;
     const section = document.createElement("details");
     section.className = "catgroup";
     if (idx === 0) section.open = true;
@@ -763,6 +765,8 @@ function renderGrid() {
     section.appendChild(head); section.appendChild(grid);
     root.appendChild(section);
   });
+  const exportBtn = document.getElementById("exportAll");
+  if (exportBtn) exportBtn.textContent = "Export all (" + grandDone + " / " + grandTotal + ")";
 }
 
 function refitPdf() {
