@@ -120,7 +120,7 @@ async function parseXlsx(downloadUrl) {
 
 function pdfFor(items, docId) {
   const hit = items.find((f) => f.name.toLowerCase() === (docId + ".pdf").toLowerCase());
-  return hit ? hit.download_url : null;
+  return hit ? PDF_DIR + "/" + hit.name : null;
 }
 
 async function discover() {
