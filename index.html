@@ -34,7 +34,7 @@
   .card .meta { color: var(--muted); font-size: 11.5px; margin-top: 4px; }
   .card .bar { height: 4px; background: var(--chip); border-radius: 99px; margin-top: 9px; overflow: hidden; }
   .card .bar i { display: block; height: 100%; background: var(--accent); width: 0; }
-  .app { display: none; grid-template-columns: 1fr 7px var(--side-w, 560px); height: 100vh; }
+  .app { display: none; grid-template-columns: 1fr 7px var(--side-w, 40vw); height: 100vh; }
   .app.on { display: grid; }
   .dragger { background: var(--line); cursor: col-resize; }
   .dragger:hover, .dragger.active { background: var(--accent); }
@@ -755,6 +755,7 @@ function initDragger() {
     let w = window.innerWidth - clientX;
     w = Math.max(MIN, Math.min(window.innerWidth - MAX_FROM_LEFT, w));
     app.style.setProperty("--side-w", w + "px");
+    refitPdf();
   }
   dragger.addEventListener("mousedown", (e) => {
     dragging = true;
