@@ -453,8 +453,8 @@ function exportJson() {
 }
 
 function initViewer() {
-  if (pdfViewer) return;
   const container = document.getElementById("viewerContainer");
+  container.innerHTML = '<div id="viewer" class="pdfViewer"></div>';
   eventBus = new pdfjsViewer.EventBus();
   const linkService = new pdfjsViewer.PDFLinkService({ eventBus });
   findController = new pdfjsViewer.PDFFindController({ eventBus, linkService });
