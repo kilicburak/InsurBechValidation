@@ -1,9 +1,14 @@
 import json
 import os
+import re
 import sys
 from glob import glob
 
 import pandas
+
+
+def natural_key(value):
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", str(value))]
 
 
 def read_rows(path):
@@ -61,7 +66,7 @@ def build_manifest(qa_dir, pdf_dir):
             "count": len(rows),
             "tasks": build_tasks(rows, answer_set, type_set),
         })
-    docs.sort(key=lambda d: d["id"])
+    docs.sort(key=lambda d: natural_key(d["id"]))
     return {"docs": docs}
 
 
