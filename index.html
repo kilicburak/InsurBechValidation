@@ -143,13 +143,14 @@
   <div class="chooser-left">
     <div class="intro">
     <h2>The task</h2>
-    InsurBench is a reasoning-focused, yes/no QA dataset over insurance policy documents. Each item has been answered in advance. Your job is to check those answers against the policy and validate them.
+    InsurBench is a reasoning-focused QA dataset over insurance policy documents. Each item pairs the document with a binary (yes/no) answerable question, a reasoning that justifies the answer, the section names (mentions) the reasoning is drawn from (main sections or subsections, not distinguished), and a reasoning type. Every item has been pre-answered; your job is to validate it and supply the ground truth where the pre-given values are wrong.
     <ol>
-      <li>Open a document. You get the policy PDF on the left and, on the right, the question, answer, reasoning, the mentioned sections, and the reasoning type.</li>
-      <li>Read the question and find the relevant passages in the PDF (use search and zoom).</li>
-      <li>For the <b>question</b>, <b>answer</b>, <b>reasoning</b>, and <b>reasoning type</b>, mark <b>Correct</b> or <b>Incorrect</b>. When you mark something Incorrect, a box opens to rewrite it (or the alternative is offered); the original value can't be re-selected.</li>
-      <li>For each <b>mention</b>, mark <b>Correct</b> (relevant and well written), <b>Incorrect</b> (wording wrong, then fix it), or <b>Irrelevant</b> (does not belong, struck through). Add any missing section with the <b>+</b> button.</li>
-      <li>Progress autosaves in your browser. Use <b>Export JSON</b> for one document, or <b>Export all (merged)</b> on this page to download everything at once.</li>
+      <li>Pick a document on the right. Its PDF opens on the left and its questions appear one at a time on the right.</li>
+      <li>Read the question and find the relevant passages in the PDF (search and zoom help).</li>
+      <li>Check the <b>answer</b>, <b>reasoning</b>, <b>mentions</b>, and <b>reasoning type</b>. Mark each <b>Correct</b>, or <b>Incorrect</b> and provide the corrected value. The original value can't be re-selected.</li>
+      <li>Also judge whether the <b>question</b> itself is answerable from the document and clearly worded; rewrite it if not.</li>
+      <li>For each mention: <b>Correct</b> (relevant, well written), <b>Incorrect</b> (wording wrong, then fix it), or <b>Irrelevant</b> (does not belong). Add a missing section with <b>+</b>.</li>
+      <li>Progress autosaves. Use <b>Export this doc</b>, or <b>Export all</b> on this page when finished.</li>
     </ol>
     <div class="glossary">
       <h2>What helps you</h2>
