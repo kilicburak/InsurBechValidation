@@ -68,11 +68,11 @@
   .question { font-size: var(--fs-value); line-height: 1.5; background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 11px 13px; }
   .value { background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 11px 13px; font-size: var(--fs-value); line-height: 1.5; }
   .typedef { font-size: var(--fs-helper); color: var(--muted); margin-top: 6px; line-height: 1.45; }
-  .qhelper { font-size: var(--fs-helper); color: var(--muted); background: #fff; border-left: 3px solid var(--accent); padding: 8px 11px; border-radius: 0 6px 6px 0; margin: 8px 0; line-height: 1.4; }
+  .qhelper { font-size: var(--fs-helper); color: var(--muted); background: #fff; border-left: 3px solid var(--line); padding: 8px 11px; border-radius: 0 6px 6px 0; margin: 8px 0; line-height: 1.4; }
   .value.ok, .question.ok { background: #e7efe9; border-color: var(--good); }
   .value.bad, .question.bad { background: #f6e8e5; border-color: var(--bad); }
   .formglossary { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
-  .formglossary summary { cursor: pointer; color: var(--accent); list-style: none; font-size: 12.5px; }
+  .formglossary summary { cursor: pointer; color: var(--muted); list-style: none; font-size: 12.5px; }
   .formglossary summary::-webkit-details-marker { display: none; }
   .formglossary summary::before { content: "\25B8"; display: inline-block; margin-right: 6px; transition: transform .15s ease; }
   .formglossary[open] summary::before { transform: rotate(90deg); }
@@ -87,7 +87,7 @@
   .fix button { font: inherit; font-size: var(--fs-option); padding: 7px 15px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .gate button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
   .gate button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
-  .fix { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--bad); background: #fbf2ef; }
+  .fix { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--good); background: #eef4f0; position: relative; }
   .fix.hidden { display: none; }
   .fix .opts { display: flex; gap: 8px; flex-wrap: wrap; }
   .fix button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -99,7 +99,7 @@
   .examples .yes { color: var(--good); font-weight: 700; margin-right: 6px; }
   .examples .no { color: var(--bad); font-weight: 700; margin-right: 6px; }
   .rules { margin-top: 6px; }
-  .rules summary { cursor: pointer; color: var(--accent); list-style: none; font-size: 12.5px; }
+  .rules summary { cursor: pointer; color: var(--muted); list-style: none; font-size: 12.5px; }
   .rules summary::-webkit-details-marker { display: none; }
   .rules summary::before { content: "\25B8"; display: inline-block; margin-right: 6px; transition: transform .15s ease; }
   .rules[open] summary::before { transform: rotate(90deg); }
@@ -115,10 +115,10 @@
   .macts button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
   .macts button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
   .macts button.sel-edit { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .mfix { padding-left: 10px; border-left: 3px solid var(--accent); margin-top: 6px; }
+  .mfix { padding: 8px 10px; border-left: 3px solid var(--good); background: #eef4f0; margin-top: 6px; position: relative; }
+  .savedtag { position: absolute; right: 8px; bottom: 8px; font-size: 12px; font-weight: 600; color: #fff; background: var(--good); padding: 3px 9px; border-radius: 999px; opacity: 0; transform: translateY(2px); transition: opacity .2s ease, transform .2s ease; pointer-events: none; }
+  .savedtag.show { opacity: 1; transform: translateY(0); }
   .mfix input { width: 100%; font: inherit; font-size: 14px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); }
-  .mfix { padding-left: 10px; border-left: 3px solid var(--bad); }
-  .mfix input { width: 100%; font: inherit; font-size: 14px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fbf2ef; color: var(--ink); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 12px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 13px; }
   .chip button { font: inherit; border: none; background: rgba(255,255,255,.25); color: #fff; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; line-height: 1; }
@@ -127,6 +127,7 @@
   .addrow { display: flex; gap: 8px; margin-top: 2px; }
   .addrow input { flex: 1; font: inherit; font-size: 14px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); }
   .addrow button { font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  .addrow button.addcancel { border-color: var(--line); background: #fff; color: var(--muted); padding: 8px 12px; }
   .footer { border-top: 1px solid var(--line); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .nav button, .footer .save { font: inherit; font-size: var(--fs-nav); padding: 9px 18px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; color: var(--ink); }
   .footer .save { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -266,6 +267,26 @@ function storeKey(id) { return "annotations_" + id; }
 function loadStore(id) { try { results = JSON.parse(localStorage.getItem(storeKey(id))) || {}; } catch (e) { results = {}; } }
 function saveStore() { localStorage.setItem(storeKey(docEntry.id), JSON.stringify(results)); }
 
+const savedTimers = new WeakMap();
+function flashSaved(field) {
+  let badge = field.parentNode.querySelector(".savedtag");
+  if (!badge) {
+    badge = document.createElement("span");
+    badge.className = "savedtag";
+    badge.textContent = "✓ saved";
+    field.parentNode.appendChild(badge);
+  }
+  const timers = savedTimers.get(badge) || {};
+  clearTimeout(timers.show);
+  clearTimeout(timers.hide);
+  badge.classList.remove("show");
+  timers.show = setTimeout(() => {
+    badge.classList.add("show");
+    timers.hide = setTimeout(() => badge.classList.remove("show"), 1500);
+  }, 600);
+  savedTimers.set(badge, timers);
+}
+
 function blank(task) {
   return {
     id: task.id,
@@ -364,7 +385,7 @@ function buildGate(label, valueText, field, options, rec, def, showValue) {
     ta.rows = 5;
     ta.value = rec[field + "_fix"] || "";
     ta.placeholder = "Write the corrected version";
-    ta.oninput = () => { rec[field + "_fix"] = ta.value; saveStore(); };
+    ta.oninput = () => { rec[field + "_fix"] = ta.value; saveStore(); flashSaved(ta); };
     fix.appendChild(ta);
   }
   if (fix.childNodes.length) wrap.appendChild(fix);
@@ -431,7 +452,7 @@ function buildMentions(task, rec) {
       inp.type = "text";
       inp.value = j.fix;
       inp.placeholder = "Corrected section name";
-      inp.oninput = () => { j.fix = inp.value; saveStore(); };
+      inp.oninput = () => { j.fix = inp.value; saveStore(); flashSaved(inp); };
       fix.appendChild(inp);
       row.appendChild(fix);
       if (showErrors && !j.fix.trim()) {
@@ -483,8 +504,16 @@ function buildMentions(task, rec) {
       saveStore(); renderForm();
     };
     addBtn.onclick = commit;
-    input.addEventListener("keydown", (e) => { if (e.key === "Enter") commit(); });
-    addRow.appendChild(input); addRow.appendChild(addBtn);
+    const cancel = document.createElement("button");
+    cancel.textContent = "✕";
+    cancel.className = "addcancel";
+    cancel.title = "Cancel";
+    cancel.onclick = () => { addOpen = false; renderForm(); };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") commit();
+      else if (e.key === "Escape") { addOpen = false; renderForm(); }
+    });
+    addRow.appendChild(input); addRow.appendChild(addBtn); addRow.appendChild(cancel);
     wrap.appendChild(addRow);
     setTimeout(() => input.focus(), 0);
   }
@@ -580,14 +609,6 @@ function skip() {
   addOpen = false;
   document.getElementById("formScroll").scrollTop = 0;
   renderForm();
-}
-
-function isEmpty(task, rec) {
-  if (rec.question_correct !== null || rec.answer_correct !== null ||
-      rec.reasoning_correct !== null || rec.type_correct !== null) return false;
-  if ((rec.mentions_added || []).length) return false;
-  if ((task.mentions || []).some((s, i) => rec.mentions_judgments[i] && rec.mentions_judgments[i].state)) return false;
-  return true;
 }
 
 function go(delta) {
