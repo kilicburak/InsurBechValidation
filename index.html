@@ -56,8 +56,12 @@
   .value { background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 14px; line-height: 1.5; }
   .typedef { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
   .formglossary { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 12px; }
-  .formglossary .label { margin-top: 0; }
+  .formglossary summary { cursor: pointer; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); list-style: none; }
+  .formglossary summary::-webkit-details-marker { display: none; }
+  .formglossary summary::before { content: "\25B8"; display: inline-block; margin-right: 6px; transition: transform .15s ease; }
+  .formglossary[open] summary::before { transform: rotate(90deg); }
   .formglossary div.g { font-size: 13px; color: var(--muted); line-height: 1.45; margin: 6px 0; }
+  .formglossary div.g:first-of-type { margin-top: 10px; }
   .formglossary b { color: var(--accent); }
   .gate { display: flex; gap: 8px; margin-top: 8px; }
   .gate button, .fix button { font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
@@ -70,16 +74,31 @@
   textarea { width: 100%; font: inherit; font-size: 14px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; resize: vertical; background: #fff; color: var(--ink); }
   .mentions { display: flex; flex-direction: column; gap: 8px; }
   .hint { font-size: 13px; color: var(--muted); margin: 2px 0 4px; line-height: 1.45; }
+  .examples { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+  .examples div { font-size: 12.5px; }
+  .examples .yes { color: var(--good); font-weight: 700; margin-right: 6px; }
+  .examples .no { color: var(--bad); font-weight: 700; margin-right: 6px; }
+  .rules { margin-top: 6px; }
+  .rules summary { cursor: pointer; color: var(--accent); list-style: none; font-size: 12.5px; }
+  .rules summary::-webkit-details-marker { display: none; }
+  .rules summary::before { content: "\25B8"; display: inline-block; margin-right: 6px; transition: transform .15s ease; }
+  .rules[open] summary::before { transform: rotate(90deg); }
+  .rules > div { margin-top: 6px; }
+  .mblock { display: flex; flex-direction: column; gap: 6px; }
   .mrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
   .mrow .mtext { font-size: 14px; }
-  .mrow.removed .mtext { text-decoration: line-through; color: var(--bad); }
+  .mrow.wrong .mtext { text-decoration: line-through; color: var(--bad); }
   .macts { display: flex; gap: 6px; flex: none; }
   .macts button { font: inherit; font-size: 12px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .macts button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
   .macts button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
+  .mfix { padding-left: 10px; border-left: 3px solid var(--bad); }
+  .mfix input { width: 100%; font: inherit; font-size: 14px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fbf2ef; color: var(--ink); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 12px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 13px; }
   .chip button { font: inherit; border: none; background: rgba(255,255,255,.25); color: #fff; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; line-height: 1; }
+  .plus { align-self: flex-start; width: 40px; height: 40px; border-radius: 10px; border: 1px dashed var(--line); background: #fff; color: var(--accent); font-size: 24px; line-height: 1; cursor: pointer; }
+  .plus:hover { border-color: var(--accent); }
   .addrow { display: flex; gap: 8px; margin-top: 2px; }
   .addrow input { flex: 1; font: inherit; font-size: 14px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); }
   .addrow button { font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
@@ -166,6 +185,7 @@ let docEntry = null;
 let tasks = [];
 let results = {};
 let current = 0;
+let addOpen = false;
 
 let pdfViewer = null;
 let findController = null;
@@ -248,13 +268,20 @@ function blank(task) {
     id: task.id,
     answer_correct: null, answer_fix: null,
     reasoning_correct: null, reasoning_fix: "",
-    mentions_removed: [], mentions_added: [],
+    mentions_judgments: (task.mentions || []).map(() => ({ correct: null, fix: "" })),
+    mentions_added: [],
     type_correct: null, type_fix: null,
   };
 }
 function record(task) {
   const merged = { ...blank(task), ...(results[task.id] || {}) };
-  if (!Array.isArray(merged.mentions_removed)) merged.mentions_removed = [];
+  const n = (task.mentions || []).length;
+  if (!Array.isArray(merged.mentions_judgments)) merged.mentions_judgments = [];
+  while (merged.mentions_judgments.length < n) merged.mentions_judgments.push({ correct: null, fix: "" });
+  merged.mentions_judgments = merged.mentions_judgments.slice(0, n).map((j) => ({
+    correct: j && typeof j.correct === "boolean" ? j.correct : null,
+    fix: j && typeof j.fix === "string" ? j.fix : "",
+  }));
   if (!Array.isArray(merged.mentions_added)) merged.mentions_added = [];
   results[task.id] = merged;
   return merged;
@@ -323,36 +350,44 @@ function buildGate(label, valueText, field, options, rec, def) {
 }
 
 function buildMentions(task, rec) {
-  if (!Array.isArray(rec.mentions_removed)) rec.mentions_removed = [];
-  if (!Array.isArray(rec.mentions_added)) rec.mentions_added = [];
   const mentions = Array.isArray(task.mentions) ? task.mentions : [];
   const wrap = document.createElement("div");
   wrap.className = "mentions";
 
-  mentions.forEach((s) => {
-    const removed = rec.mentions_removed.includes(s);
+  mentions.forEach((s, i) => {
+    const j = rec.mentions_judgments[i];
     const row = document.createElement("div");
-    row.className = "mrow" + (removed ? " removed" : "");
+    row.className = "mblock";
+
+    const top = document.createElement("div");
+    top.className = "mrow" + (j.correct === false ? " wrong" : "");
     const txt = document.createElement("span");
     txt.className = "mtext"; txt.textContent = s;
     const acts = document.createElement("div");
     acts.className = "macts";
-    const keep = document.createElement("button");
-    keep.textContent = "Keep";
-    if (!removed) keep.className = "sel-good";
-    keep.onclick = () => {
-      rec.mentions_removed = rec.mentions_removed.filter((m) => m !== s);
-      saveStore(); renderForm();
-    };
-    const rem = document.createElement("button");
-    rem.textContent = "Remove";
-    if (removed) rem.className = "sel-bad";
-    rem.onclick = () => {
-      if (!rec.mentions_removed.includes(s)) rec.mentions_removed.push(s);
-      saveStore(); renderForm();
-    };
-    acts.appendChild(keep); acts.appendChild(rem);
-    row.appendChild(txt); row.appendChild(acts);
+    const ok = document.createElement("button");
+    ok.textContent = "Correct";
+    if (j.correct === true) ok.className = "sel-good";
+    ok.onclick = () => { j.correct = true; j.fix = ""; saveStore(); renderForm(); };
+    const bad = document.createElement("button");
+    bad.textContent = "Incorrect";
+    if (j.correct === false) bad.className = "sel-bad";
+    bad.onclick = () => { j.correct = false; if (!j.fix) j.fix = s; saveStore(); renderForm(); };
+    acts.appendChild(ok); acts.appendChild(bad);
+    top.appendChild(txt); top.appendChild(acts);
+    row.appendChild(top);
+
+    if (j.correct === false) {
+      const fix = document.createElement("div");
+      fix.className = "mfix";
+      const inp = document.createElement("input");
+      inp.type = "text";
+      inp.value = j.fix;
+      inp.placeholder = "Corrected section name";
+      inp.oninput = () => { j.fix = inp.value; saveStore(); };
+      fix.appendChild(inp);
+      row.appendChild(fix);
+    }
     wrap.appendChild(row);
   });
 
@@ -375,23 +410,32 @@ function buildMentions(task, rec) {
     wrap.appendChild(chips);
   }
 
-  const addRow = document.createElement("div");
-  addRow.className = "addrow";
-  const input = document.createElement("input");
-  input.type = "text";
-  input.placeholder = "Add a missing section";
-  const addBtn = document.createElement("button");
-  addBtn.textContent = "Add";
-  const commit = () => {
-    const v = input.value.trim();
-    if (!v) return;
-    if (!rec.mentions_added.includes(v)) rec.mentions_added.push(v);
-    saveStore(); renderForm();
-  };
-  addBtn.onclick = commit;
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") commit(); });
-  addRow.appendChild(input); addRow.appendChild(addBtn);
-  wrap.appendChild(addRow);
+  if (!addOpen) {
+    const plus = document.createElement("button");
+    plus.className = "plus";
+    plus.textContent = "+";
+    plus.title = "Add a missing section";
+    plus.onclick = () => { addOpen = true; renderForm(); };
+    wrap.appendChild(plus);
+  } else {
+    const addRow = document.createElement("div");
+    addRow.className = "addrow";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Add a missing section";
+    const addBtn = document.createElement("button");
+    addBtn.textContent = "Add";
+    const commit = () => {
+      const v = input.value.trim();
+      if (v && !rec.mentions_added.includes(v)) rec.mentions_added.push(v);
+      saveStore(); renderForm();
+    };
+    addBtn.onclick = commit;
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") commit(); });
+    addRow.appendChild(input); addRow.appendChild(addBtn);
+    wrap.appendChild(addRow);
+    setTimeout(() => input.focus(), 0);
+  }
 
   return wrap;
 }
@@ -418,17 +462,25 @@ function renderForm() {
   form.appendChild(mLab);
   const hint = document.createElement("div");
   hint.className = "hint";
-  hint.textContent = "Proposed as correct. Keep the right ones, remove the wrong ones, add any missing.";
+  hint.innerHTML = "Mark each as Correct if it is relevant and correctly written, otherwise Incorrect and fix it." +
+    '<details class="rules">' +
+    "<summary>Numbering &amp; casing rules</summary>" +
+    "<div>Ignore missing section numbers and differences in capitalization, only the wording matters, unless a number is present and wrong.</div>" +
+    '<div class="examples">' +
+    '<div><span class="yes">&#10003;</span> Section reads &ldquo;1. Title&rdquo;, written as &ldquo;Title&rdquo;</div>' +
+    '<div><span class="yes">&#10003;</span> Section reads &ldquo;Title&rdquo;, written as &ldquo;TITLE&rdquo; (or vice versa)</div>' +
+    '<div><span class="no">&#10007;</span> Section reads &ldquo;1. Title&rdquo;, written as &ldquo;2. Title&rdquo;</div>' +
+    "</div></details>";
   form.appendChild(hint);
   form.appendChild(buildMentions(task, rec));
 
   form.appendChild(buildGate("Reasoning type", task.reasoning_type, "type", task.type_options, rec, TYPE_DEFS[task.reasoning_type] || null));
 
-  const gl = document.createElement("div");
+  const gl = document.createElement("details");
   gl.className = "formglossary";
-  const glLab = document.createElement("div");
-  glLab.className = "label"; glLab.textContent = "Reasoning types";
-  gl.appendChild(glLab);
+  const sum = document.createElement("summary");
+  sum.textContent = "Reasoning types";
+  gl.appendChild(sum);
   Object.keys(TYPE_DEFS).forEach((k) => {
     const row = document.createElement("div");
     row.className = "g";
@@ -443,6 +495,7 @@ function renderForm() {
 
 function go(delta) {
   current = Math.max(0, Math.min(tasks.length - 1, current + delta));
+  addOpen = false;
   document.getElementById("form").scrollTop = 0;
   renderForm();
 }
@@ -507,6 +560,7 @@ function openDoc(entry) {
   loadStore(entry.id);
   tasks = buildTasks(entry);
   current = 0;
+  addOpen = false;
   document.getElementById("docTitle").textContent = entry.title;
   document.getElementById("search").value = "";
   document.getElementById("matches").textContent = "";
