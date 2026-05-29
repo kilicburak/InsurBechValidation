@@ -43,6 +43,10 @@ def build_tasks(rows, answer_set, type_set):
     ]
 
 
+def padded_pdf_name(doc_id, width):
+    return re.sub(r"(\d+)", lambda m: m.group(1).zfill(width), doc_id) + ".pdf"
+
+
 def build_manifest(qa_dir, pdf_dir):
     files = sorted(glob(os.path.join(qa_dir, "*.xlsx")))
     all_rows = []
@@ -56,9 +60,11 @@ def build_manifest(qa_dir, pdf_dir):
         all_rows.extend(rows)
     answer_set = universe(all_rows, "answer")
     type_set = universe(all_rows, "reasoning_type")
+    numbers = [int(n) for d, _ in grouped for n in re.findall(r"\d+", d)]
+    width = max(2, len(str(max(numbers)))) if numbers else 2
     docs = []
     for doc_id, rows in grouped:
-        pdf_name = doc_id + ".pdf"
+        pdf_name = padded_pdf_name(doc_id, width)
         docs.append({
             "id": doc_id,
             "title": doc_id,
