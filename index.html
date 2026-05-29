@@ -398,7 +398,7 @@ function renderForm() {
   const q = document.createElement("div");
   q.className = "question"; q.textContent = task.question;
   form.appendChild(qLab); form.appendChild(q);
-  form.appendChild(buildGate("", task.question, "question", "text", rec, null, false));
+  form.appendChild(buildGate("", task.question, "question", "text", rec, "Is this question answerable from this document and clearly worded? Mark Correct to keep it, or Incorrect to rewrite it.", false));
 
   form.appendChild(buildGate("Answer", task.answer, "answer", null, rec, null));
   form.appendChild(buildGate("Reasoning", task.reasoning, "reasoning", "text", rec, null));
