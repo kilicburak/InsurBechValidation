@@ -80,7 +80,8 @@
 </div>
 
 <script>
-const DOCS_DIR = "docs";
+const PDF_DIR = "docs";
+const XLSX_DIR = "qa_pairs";
 
 let docs = [];
 let answerSet = [];
@@ -98,9 +99,9 @@ function repoInfo() {
   return { owner, repo };
 }
 
-async function listFolder() {
+async function listFolder(dir) {
   const { owner, repo } = repoInfo();
-  const url = "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + DOCS_DIR;
+  const url = "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + dir;
   const res = await fetch(url);
   if (!res.ok) throw new Error("listing failed");
   return res.json();
@@ -123,8 +124,9 @@ function pdfFor(items, docId) {
 }
 
 async function discover() {
-  const items = await listFolder();
-  const xlsxFiles = items.filter((f) => /\.xlsx$/i.test(f.name));
+  const xlsxItems = await listFolder(XLSX_DIR);
+  const pdfItems = await listFolder(PDF_DIR);
+  const xlsxFiles = xlsxItems.filter((f) => /\.xlsx$/i.test(f.name));
   const answers = new Set();
   const types = new Set();
   const entries = [];
@@ -133,7 +135,7 @@ async function discover() {
     if (!rows.length) continue;
     const docId = String(rows[0].doc).trim();
     rows.forEach((r) => { answers.add(String(r.answer)); types.add(String(r.reasoning_type)); });
-    entries.push({ id: docId, title: docId, pdf: pdfFor(items, docId), rows, count: rows.length });
+    entries.push({ id: docId, title: docId, pdf: pdfFor(pdfItems, docId), rows, count: rows.length });
   }
   answerSet = [...answers].sort();
   typeSet = [...types].sort();
@@ -330,7 +332,7 @@ function progressFor(entry) {
 function renderGrid() {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
-  if (!docs.length) { grid.innerHTML = '<div class="empty">No documents found in /' + DOCS_DIR + '.</div>'; return; }
+  if (!docs.length) { grid.innerHTML = '<div class="empty">No documents found in /' + XLSX_DIR + '.</div>'; return; }
   docs.forEach((entry) => {
     const p = progressFor(entry);
     const card = document.createElement("div");
@@ -358,7 +360,7 @@ async function init() {
   try {
     await discover();
   } catch (e) {
-    document.getElementById("grid").innerHTML = '<div class="empty">Could not read /' + DOCS_DIR + ' from the repository.</div>';
+    document.getElementById("grid").innerHTML = '<div class="empty">Could not read the repository folders.</div>';
     return;
   }
   renderGrid();
