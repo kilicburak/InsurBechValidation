@@ -252,7 +252,13 @@ function blank(task) {
     type_correct: null, type_fix: null,
   };
 }
-function record(task) { if (!results[task.id]) results[task.id] = blank(task); return results[task.id]; }
+function record(task) {
+  const merged = { ...blank(task), ...(results[task.id] || {}) };
+  if (!Array.isArray(merged.mentions_removed)) merged.mentions_removed = [];
+  if (!Array.isArray(merged.mentions_added)) merged.mentions_added = [];
+  results[task.id] = merged;
+  return merged;
+}
 function isDone(rec) { return rec && rec.answer_correct !== null && rec.reasoning_correct !== null && rec.type_correct !== null; }
 
 function gate(field, value, rec) {
