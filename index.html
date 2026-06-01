@@ -69,7 +69,7 @@
   .value { background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 11px 13px; font-size: var(--fs-value); line-height: 1.5; }
   .typedef { font-size: var(--fs-helper); color: var(--muted); margin-top: 6px; line-height: 1.45; }
   .qhelper { font-size: var(--fs-helper); color: var(--muted); background: #fff; border-left: 3px solid var(--line); padding: 8px 11px; border-radius: 0 6px 6px 0; margin: 8px 0; line-height: 1.4; }
-  .value.ok, .question.ok { background: #e7efe9; border-color: var(--good); }
+  .value.ok, .question.ok { background: #d8e8de; border-color: var(--good); }
   .value.bad, .question.bad { background: #f6e8e5; border-color: var(--bad); }
   .formglossary { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
   .formglossary summary { cursor: pointer; color: var(--muted); list-style: none; font-size: 12.5px; }
@@ -87,7 +87,7 @@
   .fix button { font: inherit; font-size: var(--fs-option); padding: 7px 15px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .gate button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
   .gate button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
-  .fix { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--good); background: #eef4f0; position: relative; }
+  .fix { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--good); background: #dfece4; position: relative; }
   .fix.hidden { display: none; }
   .fix .opts { display: flex; gap: 8px; flex-wrap: wrap; }
   .fix button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -108,14 +108,15 @@
   .mrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--chip); }
   .mrow .mtext { font-size: var(--fs-value); }
   .mrow.wrong .mtext { text-decoration: line-through; color: var(--bad); }
-  .mrow.ok { background: #e7efe9; border-color: var(--good); }
+  .mrow.ok { background: #d8e8de; border-color: var(--good); }
+  .mrow.edit { background: #f6e8e5; border-color: var(--bad); }
   .mrow.wrong { background: #f6e8e5; border-color: var(--bad); }
   .macts { display: flex; gap: 6px; flex: none; }
   .macts button { font: inherit; font-size: var(--fs-button); padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
   .macts button.sel-good { background: var(--good); color: #fff; border-color: var(--good); }
   .macts button.sel-bad { background: var(--bad); color: #fff; border-color: var(--bad); }
   .macts button.sel-edit { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .mfix { padding: 8px 10px; border-left: 3px solid var(--good); background: #eef4f0; margin-top: 6px; position: relative; }
+  .mfix { padding: 8px 10px; border-left: 3px solid var(--good); background: #dfece4; margin-top: 6px; position: relative; }
   .savedtag { position: absolute; right: 8px; bottom: 8px; font-size: 12px; font-weight: 600; color: #fff; background: var(--good); padding: 3px 9px; border-radius: 999px; opacity: 0; transform: translateY(2px); transition: opacity .2s ease, transform .2s ease; pointer-events: none; }
   .savedtag.show { opacity: 1; transform: translateY(0); }
   .mfix input { width: 100%; font: inherit; font-size: 14px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); }
@@ -414,7 +415,7 @@ function buildMentions(task, rec) {
     row.className = "mblock";
 
     const top = document.createElement("div");
-    top.className = "mrow" + (j.state === "correct" ? " ok" : "") + (j.state === "irrelevant" ? " wrong" : "") + (showErrors && !j.state ? " needs" : "");
+    top.className = "mrow" + (j.state === "correct" ? " ok" : "") + (j.state === "incorrect" ? " edit" : "") + (j.state === "irrelevant" ? " wrong" : "") + (showErrors && !j.state ? " needs" : "");
     const txt = document.createElement("span");
     txt.className = "mtext"; txt.textContent = s;
     const acts = document.createElement("div");
