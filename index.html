@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/web/pdf_viewer.css"/>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/web/pdf_viewer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+<script src="config.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: var(--font-family); color: var(--ink); background: var(--bg); height: 100vh; overflow: hidden; }
@@ -136,6 +138,40 @@
   .skipbtn { font: inherit; font-size: 12px; padding: 7px 12px; border-radius: 6px; border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; margin-left: auto; margin-right: 8px; }
   .skipbtn:hover { color: var(--bad); border-color: var(--bad); }
   .empty { color: var(--muted); padding: 24px; }
+  .recorder { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 0; }
+  .recbar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+  .micbtn { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--accent); background: #fff; color: var(--accent); cursor: pointer; flex: none; transition: background .15s ease, color .15s ease; }
+  .micbtn svg { width: 20px; height: 20px; }
+  .micbtn.on { background: var(--bad); border-color: var(--bad); color: #fff; animation: micpulse 1.4s ease-out infinite; }
+  .micbtn:disabled { opacity: .6; cursor: default; }
+  @keyframes micpulse {
+    0% { box-shadow: 0 0 0 0 rgba(156, 59, 46, .55); }
+    70% { box-shadow: 0 0 0 12px rgba(156, 59, 46, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(156, 59, 46, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .micbtn.on { animation: none; }
+  }
+  .recstatus { font-size: 12.5px; color: var(--muted); }
+  .reclist { display: flex; flex-direction: column; gap: 6px; }
+  .recitem { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--chip); }
+  .recitem audio { display: none; }
+  .player { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
+  .pbtn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--accent); background: #fff; color: var(--accent); cursor: pointer; flex: none; }
+  .pbtn svg { width: 16px; height: 16px; }
+  .ptrack { position: relative; flex: 1 1 auto; min-width: 0; height: 6px; border-radius: 999px; background: #fff; border: 1px solid var(--line); cursor: pointer; overflow: hidden; }
+  .pfill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); }
+  .ptime { font-size: 12px; color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
+  .recmeta { font-size: 12px; color: var(--muted); flex: none; }
+  .recdel { font: inherit; border: 1px solid var(--line); background: #fff; color: var(--muted); width: 24px; height: 24px; border-radius: 50%; cursor: pointer; line-height: 1; flex: none; }
+  .recdel:hover { color: var(--bad); border-color: var(--bad); }
+  .acgate { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: var(--bg); }
+  .acgate-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 28px 26px; width: min(360px, 90vw); display: flex; flex-direction: column; gap: 12px; }
+  .acgate-card h2 { margin: 0; font-size: 18px; color: var(--ink); }
+  .acgate-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .acgate-card input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+  .acgate-card button { font: inherit; font-size: 14px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  .acgate-err { font-size: 12.5px; color: var(--bad); min-height: 16px; }
 </style>
 </head>
 <body>
@@ -162,6 +198,10 @@
         <li>Use the Zoom In / Zoom Out buttons on the right to fit the form to your screen.</li>
         <li>Each document card shows your validation progress.</li>
       </ol>
+    </div>
+    <div class="glossary">
+      <h2>Ethics</h2>
+      <p>Voice recordings are collected only to transcribe your spoken corrections into text for this annotation work. They are not used for any other purpose, not shared, and we do not collect personal attachments or personal data. You can delete any recording you make at any time.</p>
     </div>
     </div>
   </div>
@@ -237,6 +277,7 @@ let results = {};
 let current = 0;
 let addOpen = false;
 let showErrors = false;
+let curRecordingCount = 0;
 let formZoom = parseFloat(localStorage.getItem("form_zoom")) || 1;
 
 function applyFormZoom() {
@@ -324,8 +365,8 @@ function gate(field, value, valueText, options, rec) {
     rec[field + "_correct"] = value;
     if (value) {
       rec[field + "_fix"] = (Array.isArray(options) || options === "choice") ? null : "";
-    } else if (options === "text" && !rec[field + "_fix"]) {
-      rec[field + "_fix"] = valueText;
+    } else if (options === "text" && typeof rec[field + "_fix"] !== "string") {
+      rec[field + "_fix"] = "";
     }
   }
   saveStore();
@@ -385,7 +426,7 @@ function buildGate(label, valueText, field, options, rec, def, showValue) {
     const ta = document.createElement("textarea");
     ta.rows = 5;
     ta.value = rec[field + "_fix"] || "";
-    ta.placeholder = "Write the corrected version";
+    ta.placeholder = "Write the correct " + field;
     ta.oninput = () => { rec[field + "_fix"] = ta.value; saveStore(); flashSaved(ta); };
     fix.appendChild(ta);
   }
@@ -393,7 +434,8 @@ function buildGate(label, valueText, field, options, rec, def, showValue) {
   if (showErrors) {
     let msg = null;
     if (correct === null) msg = "Choose Correct or Incorrect";
-    else if (correct === false && options === "text" && !(rec[field + "_fix"] || "").trim()) msg = "Write the corrected version";
+    else if (correct === false && field === "reasoning" && !(rec.reasoning_fix || "").trim() && curRecordingCount === 0) msg = "Add a correction or a recording";
+    else if (correct === false && options === "text" && field !== "reasoning" && !(rec[field + "_fix"] || "").trim()) msg = "Write the corrected version";
     else if (correct === false && Array.isArray(options) && !rec[field + "_fix"]) msg = "Pick the correct option";
     if (msg) {
       const e = document.createElement("div");
@@ -424,7 +466,6 @@ function buildMentions(task, rec) {
     const set = (state) => {
       j.state = j.state === state ? null : state;
       if (j.state !== "incorrect") j.fix = "";
-      else if (!j.fix) j.fix = s;
       rec.skipped = false;
       saveStore(); renderForm();
     };
@@ -452,7 +493,7 @@ function buildMentions(task, rec) {
       const inp = document.createElement("input");
       inp.type = "text";
       inp.value = j.fix;
-      inp.placeholder = "Corrected section name";
+      inp.placeholder = "Write the correct section";
       inp.oninput = () => { j.fix = inp.value; saveStore(); flashSaved(inp); };
       fix.appendChild(inp);
       row.appendChild(fix);
@@ -522,6 +563,463 @@ function buildMentions(task, rec) {
   return wrap;
 }
 
+const WORKER_URL = (window.APP_CONFIG && window.APP_CONFIG.WORKER_URL) || "";
+
+const MIC_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V21H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-3.08A7 7 0 0 0 19 11z"/></svg>';
+const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+const PAUSE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+
+function annotatorName() {
+  return localStorage.getItem("annotator") || "anonymous";
+}
+
+function ownerId() {
+  let id = localStorage.getItem("owner_id");
+  if (!id) {
+    id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+    localStorage.setItem("owner_id", id);
+  }
+  return id;
+}
+
+function accessKey() {
+  let key = localStorage.getItem("access_key");
+  if (!key) {
+    key = (window.prompt("Enter the access code to record or delete") || "").trim();
+    if (key) localStorage.setItem("access_key", key);
+  }
+  return key;
+}
+
+const authApi = {
+  async status(accessCode) {
+    try {
+      const res = await fetch(WORKER_URL + "/auth", { headers: { "x-access-key": accessCode || "" } });
+      return res.status;
+    } catch (e) {
+      return 0;
+    }
+  },
+};
+
+async function ensureAccess() {
+  const stored = localStorage.getItem("access_key") || "";
+  const status = await authApi.status(stored);
+  if (status !== 401) return;
+  await promptForAccess();
+}
+
+function promptForAccess() {
+  return new Promise((resolve) => {
+    const gate = document.createElement("div");
+    gate.className = "acgate";
+    const card = document.createElement("div");
+    card.className = "acgate-card";
+    const h = document.createElement("h2");
+    h.textContent = "Access code";
+    const p = document.createElement("p");
+    p.textContent = "Enter the shared code to use the annotation tool.";
+    const input = document.createElement("input");
+    input.type = "password";
+    input.placeholder = "Access code";
+    const btn = document.createElement("button");
+    btn.textContent = "Continue";
+    const err = document.createElement("div");
+    err.className = "acgate-err";
+    card.appendChild(h); card.appendChild(p); card.appendChild(input); card.appendChild(btn); card.appendChild(err);
+    gate.appendChild(card);
+    document.body.appendChild(gate);
+    setTimeout(() => input.focus(), 0);
+
+    const submit = async () => {
+      const code = input.value.trim();
+      btn.disabled = true; err.textContent = "";
+      const status = await authApi.status(code);
+      if (status === 200) {
+        localStorage.setItem("access_key", code);
+        gate.remove();
+        resolve();
+      } else if (status === 401) {
+        err.textContent = "Incorrect code";
+        btn.disabled = false;
+        input.select();
+      } else {
+        err.textContent = "Cannot reach server";
+        btn.disabled = false;
+      }
+    };
+    btn.onclick = submit;
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+  });
+}
+
+/**
+ * Converts Float32 audio samples to signed 16 bit PCM.
+ */
+function floatTo16(input) {
+  const out = new Int16Array(input.length);
+  for (let i = 0; i < input.length; i++) {
+    const s = Math.max(-1, Math.min(1, input[i]));
+    out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  }
+  return out;
+}
+
+/**
+ * Concatenates captured PCM chunks into one buffer.
+ */
+function mergeChunks(chunks) {
+  let len = 0;
+  chunks.forEach((c) => { len += c.length; });
+  const all = new Int16Array(len);
+  let offset = 0;
+  chunks.forEach((c) => { all.set(c, offset); offset += c.length; });
+  return all;
+}
+
+/**
+ * Encodes mono PCM into an MP3 blob playable in every browser.
+ */
+function encodeMp3(chunks, sampleRate) {
+  const samples = mergeChunks(chunks);
+  const encoder = new lamejs.Mp3Encoder(1, sampleRate, 128);
+  const block = 1152;
+  const parts = [];
+  for (let i = 0; i < samples.length; i += block) {
+    const slice = samples.subarray(i, i + block);
+    const buf = encoder.encodeBuffer(slice);
+    if (buf.length > 0) parts.push(new Uint8Array(buf));
+  }
+  const tail = encoder.flush();
+  if (tail.length > 0) parts.push(new Uint8Array(tail));
+  return new Blob(parts, { type: "audio/mpeg" });
+}
+
+function createAudioRecorder() {
+  let ctx = null;
+  let source = null;
+  let processor = null;
+  let stream = null;
+  let sampleRate = 44100;
+  let chunks = [];
+  return {
+    async start() {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      sampleRate = ctx.sampleRate;
+      source = ctx.createMediaStreamSource(stream);
+      processor = ctx.createScriptProcessor(4096, 1, 1);
+      chunks = [];
+      processor.onaudioprocess = (e) => {
+        chunks.push(floatTo16(e.inputBuffer.getChannelData(0)));
+      };
+      source.connect(processor);
+      processor.connect(ctx.destination);
+    },
+    async stop() {
+      processor.disconnect();
+      source.disconnect();
+      stream.getTracks().forEach((t) => t.stop());
+      let total = 0;
+      chunks.forEach((c) => { total += c.length; });
+      const durationMs = sampleRate ? Math.round((total / sampleRate) * 1000) : 0;
+      const blob = encodeMp3(chunks, sampleRate);
+      await ctx.close();
+      return { blob, durationMs };
+    },
+  };
+}
+
+const recordingsApi = {
+  async list(docId) {
+    const res = await fetch(WORKER_URL + "/recordings?doc=" + encodeURIComponent(docId), {
+      headers: { "x-access-key": accessKey() },
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    return data.items || [];
+  },
+  async upload(docId, questionId, questionText, annotator, accessCode, blob, durationMs) {
+    const res = await fetch(WORKER_URL + "/recordings", {
+      method: "POST",
+      headers: {
+        "content-type": blob.type || "audio/webm",
+        "x-doc-id": docId,
+        "x-question-id": questionId || "",
+        "x-question-text": encodeURIComponent(questionText || ""),
+        "x-annotator": annotator || "anonymous",
+        "x-owner": ownerId(),
+        "x-duration-ms": String(durationMs || 0),
+        "x-access-key": accessCode || "",
+      },
+      body: blob,
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.json();
+  },
+  async remove(objectKey, accessCode) {
+    const res = await fetch(WORKER_URL + "/recordings/" + objectKey, {
+      method: "DELETE",
+      headers: { "x-access-key": accessCode || "" },
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+  },
+  streamUrl(key) {
+    return WORKER_URL + "/recordings/" + key;
+  },
+  async sign(key) {
+    const res = await fetch(WORKER_URL + "/sign?key=" + encodeURIComponent(key), {
+      headers: { "x-access-key": accessKey() },
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    return data.url;
+  },
+};
+
+/**
+ * Millisecond timestamp for a recording, preferring its stored creation time.
+ */
+function recordedAt(it) {
+  const stamp = (it.meta && it.meta.createdAt) || it.uploaded;
+  const ms = Date.parse(stamp);
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+/**
+ * Forces the browser to read the true clip length so the seek bar maps correctly.
+ */
+function fixAudioDuration(audio) {
+  audio.addEventListener("loadedmetadata", function onMeta() {
+    audio.removeEventListener("loadedmetadata", onMeta);
+    audio.currentTime = 1e101;
+    audio.addEventListener("timeupdate", function onSeek() {
+      audio.removeEventListener("timeupdate", onSeek);
+      audio.currentTime = 0;
+    });
+  });
+}
+
+const annotationsApi = {
+  async save(scope, annotator, accessCode, data) {
+    const res = await fetch(WORKER_URL + "/annotations", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-scope": scope || "all",
+        "x-annotator": annotator || "anonymous",
+        "x-owner": ownerId(),
+        "x-access-key": accessCode || "",
+      },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.json();
+  },
+};
+
+function createRecorderPanel() {
+  const recorder = createAudioRecorder();
+  let docId = null;
+  let questionId = null;
+  let questionText = "";
+  let recording = false;
+  let busy = false;
+  let lastTarget = null;
+
+  const element = document.createElement("div");
+  element.className = "recorder";
+  const bar = document.createElement("div");
+  bar.className = "recbar";
+  const micBtn = document.createElement("button");
+  micBtn.type = "button";
+  micBtn.className = "micbtn";
+  micBtn.innerHTML = MIC_SVG;
+  const status = document.createElement("span");
+  status.className = "recstatus";
+  bar.appendChild(status);
+  bar.appendChild(micBtn);
+  const listEl = document.createElement("div");
+  listEl.className = "reclist";
+  element.appendChild(listEl);
+  element.appendChild(bar);
+
+  function paintMic() {
+    micBtn.title = recording ? "Stop" : "Record";
+    micBtn.setAttribute("aria-label", recording ? "Stop" : "Record");
+    micBtn.classList.toggle("on", recording);
+    micBtn.disabled = busy;
+  }
+
+  function buildItem(it) {
+    const row = document.createElement("div");
+    row.className = "recitem";
+
+    const audio = document.createElement("audio");
+    audio.preload = "metadata";
+    audio.src = it.signedUrl || (recordingsApi.streamUrl(it.key) + "?k=" + encodeURIComponent(accessKey()));
+
+    const knownMs = it.meta && it.meta.duration ? Number(it.meta.duration) : 0;
+    const known = knownMs > 0 ? knownMs / 1000 : 0;
+    const totalSeconds = () => (known > 0 ? known : (isFinite(audio.duration) ? audio.duration : 0));
+
+    const fmt = (s) => {
+      if (!isFinite(s) || s < 0) s = 0;
+      const m = Math.floor(s / 60);
+      const r = Math.floor(s % 60);
+      return m + ":" + (r < 10 ? "0" + r : r);
+    };
+
+    const player = document.createElement("div");
+    player.className = "player";
+    const play = document.createElement("button");
+    play.type = "button";
+    play.className = "pbtn";
+    play.innerHTML = PLAY_SVG;
+    const track = document.createElement("div");
+    track.className = "ptrack";
+    const fill = document.createElement("div");
+    fill.className = "pfill";
+    track.appendChild(fill);
+    const time = document.createElement("span");
+    time.className = "ptime";
+    player.appendChild(play);
+    player.appendChild(track);
+    player.appendChild(time);
+
+    const paint = () => {
+      const t = totalSeconds();
+      const cur = audio.currentTime || 0;
+      fill.style.width = (t > 0 ? Math.min(1, cur / t) * 100 : 0) + "%";
+      time.textContent = fmt(cur) + " / " + fmt(t);
+    };
+    audio.addEventListener("loadedmetadata", paint);
+    audio.addEventListener("timeupdate", paint);
+    audio.addEventListener("ended", () => { play.innerHTML = PLAY_SVG; });
+    const linkExpired = () => {
+      try {
+        const exp = Number(new URL(audio.src).searchParams.get("exp"));
+        return !exp || Date.now() > exp - 5000;
+      } catch (e) { return false; }
+    };
+    const refreshLink = async () => {
+      try { audio.src = await recordingsApi.sign(it.key); } catch (e) {}
+    };
+    play.onclick = async () => {
+      if (audio.paused) {
+        play.innerHTML = PAUSE_SVG;
+        if (linkExpired()) await refreshLink();
+        audio.play().catch(() => {});
+      } else {
+        audio.pause();
+        play.innerHTML = PLAY_SVG;
+      }
+    };
+    let retried = false;
+    audio.addEventListener("error", async () => {
+      if (retried) return;
+      retried = true;
+      await refreshLink();
+      audio.play().catch(() => {});
+    });
+    track.onclick = (e) => {
+      const t = totalSeconds();
+      if (t <= 0) return;
+      const rect = track.getBoundingClientRect();
+      const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      audio.currentTime = ratio * t;
+      paint();
+    };
+    paint();
+
+    const meta = document.createElement("span");
+    meta.className = "recmeta";
+    meta.textContent = (it.meta && it.meta.annotator) || "anonymous";
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "recdel";
+    del.textContent = "\u2715";
+    del.title = "Delete recording";
+    del.onclick = async () => {
+      if (!window.confirm("Delete this recording?")) return;
+      del.disabled = true;
+      try { await recordingsApi.remove(it.key, accessKey()); await refresh(); }
+      catch (e) {
+        del.disabled = false;
+        if (String(e.message).includes("401")) { localStorage.removeItem("access_key"); status.textContent = "wrong access code"; }
+      }
+    };
+    row.appendChild(audio);
+    row.appendChild(player);
+    row.appendChild(meta);
+    row.appendChild(del);
+    return row;
+  }
+
+  async function refresh() {
+    listEl.innerHTML = "";
+    if (!docId) return;
+    let items = [];
+    try { items = await recordingsApi.list(docId); }
+    catch (e) { status.textContent = "storage offline"; return; }
+    const mine = items.filter((it) => it.meta && it.meta.questionId === questionId && it.meta.owner === ownerId());
+    curRecordingCount = mine.length;
+    mine
+      .sort((a, b) => recordedAt(b) - recordedAt(a))
+      .forEach((it) => listEl.appendChild(buildItem(it)));
+  }
+
+  micBtn.onclick = async () => {
+    if (busy) return;
+    if (!recording) {
+      busy = true; paintMic(); status.textContent = "";
+      try {
+        await recorder.start();
+        recording = true; busy = false; paintMic();
+        status.textContent = "recording";
+      } catch (e) {
+        busy = false; recording = false; paintMic();
+        status.textContent = "microphone blocked";
+      }
+      return;
+    }
+    busy = true; paintMic(); status.textContent = "saving";
+    try {
+      const { blob, durationMs } = await recorder.stop();
+      recording = false;
+      await recordingsApi.upload(docId, questionId, questionText, annotatorName(), accessKey(), blob, durationMs);
+      status.textContent = "";
+      await refresh();
+      if (showErrors) renderForm();
+    } catch (e) {
+      if (String(e.message).includes("401")) { localStorage.removeItem("access_key"); status.textContent = "wrong access code"; }
+      else status.textContent = "upload failed";
+    } finally {
+      busy = false; paintMic();
+    }
+  };
+
+  function setTarget(nextDoc, nextQuestion, nextQuestionText) {
+    docId = nextDoc;
+    questionId = nextQuestion == null ? "" : String(nextQuestion);
+    questionText = nextQuestionText || "";
+    paintMic();
+    const target = nextDoc + "|" + nextQuestion;
+    if (target !== lastTarget && !recording) {
+      lastTarget = target;
+      refresh();
+    }
+  }
+
+  return { element, setTarget };
+}
+
+let recorderPanel = null;
+function getRecorderPanel() {
+  if (!recorderPanel) recorderPanel = createRecorderPanel();
+  return recorderPanel;
+}
+
 function renderForm() {
   const form = document.getElementById("form");
   if (!tasks.length) { form.innerHTML = '<div class="empty">No tasks.</div>'; return; }
@@ -544,6 +1042,12 @@ function renderForm() {
 
   form.appendChild(buildGate("Answer", task.answer, "answer", null, rec, null));
   form.appendChild(buildGate("Reasoning", task.reasoning, "reasoning", "text", rec, null));
+
+  if (rec.reasoning_correct === false) {
+    const panel = getRecorderPanel();
+    panel.setTarget(docEntry.id, task.id != null ? task.id : current + 1, task.question);
+    form.appendChild(panel.element);
+  }
 
   const mLab = document.createElement("div");
   mLab.className = "label"; mLab.textContent = "Mentions";
@@ -587,7 +1091,7 @@ function missingFields(task, rec) {
   else if (rec.question_correct === false && !(rec.question_fix || "").trim()) m.push("Question: write the corrected version");
   if (rec.answer_correct === null) m.push("Answer: choose Correct or Incorrect");
   if (rec.reasoning_correct === null) m.push("Reasoning: choose Correct or Incorrect");
-  else if (rec.reasoning_correct === false && !(rec.reasoning_fix || "").trim()) m.push("Reasoning: write the corrected version");
+  else if (rec.reasoning_correct === false && !(rec.reasoning_fix || "").trim() && curRecordingCount === 0) m.push("Reasoning: add a correction or a recording");
   if (rec.type_correct === null) m.push("Reasoning type: choose Correct or Incorrect");
   else if (rec.type_correct === false && !rec.type_fix) m.push("Reasoning type: pick the correct type");
   const mentions = task.mentions || [];
@@ -599,8 +1103,22 @@ function missingFields(task, rec) {
   return m;
 }
 
-function skip() {
+async function questionRecordingKeys(docId, questionId) {
+  let items = [];
+  try { items = await recordingsApi.list(docId); } catch (e) { return []; }
+  return items
+    .filter((it) => it.meta && it.meta.questionId === String(questionId) && it.meta.owner === ownerId())
+    .map((it) => it.key);
+}
+
+async function skip() {
   const task = tasks[current];
+  const qid = task.id != null ? task.id : current + 1;
+  const keys = await questionRecordingKeys(docEntry.id, qid);
+  if (keys.length && !window.confirm("Skipping will delete this question's recording. Continue?")) return;
+  for (const key of keys) {
+    try { await recordingsApi.remove(key, accessKey()); } catch (e) {}
+  }
   const fresh = blank(task);
   fresh.skipped = true;
   results[task.id] = fresh;
@@ -612,10 +1130,15 @@ function skip() {
   renderForm();
 }
 
-function go(delta) {
+async function go(delta) {
   if (delta > 0) {
     const task = tasks[current];
-    const miss = missingFields(task, record(task));
+    const rec = record(task);
+    if (rec.reasoning_correct === false && !(rec.reasoning_fix || "").trim()) {
+      const qid = task.id != null ? task.id : current + 1;
+      curRecordingCount = (await questionRecordingKeys(docEntry.id, qid)).length;
+    }
+    const miss = missingFields(task, rec);
     if (miss.length) {
       showErrors = true;
       renderForm();
@@ -636,8 +1159,55 @@ function recordsForDoc(entry) {
   try { store = JSON.parse(localStorage.getItem(storeKey(entry.id))) || {}; } catch (e) {}
   return entry.tasks.map((t) => {
     const rec = { ...blank(t), ...(store[t.id] || {}) };
-    rec.answer_fix = rec.answer_correct === false ? (t.answer_options[0] || null) : null;
-    return { doc: entry.id, ...rec };
+    const mentions = (t.mentions || []).map((m, i) => {
+      const j = rec.mentions_judgments[i] || { state: null, fix: "" };
+      return { mention: m, state: j.state, fix: j.fix || "" };
+    });
+    return {
+      doc: entry.id,
+      id: t.id,
+      question: { text: t.question, correct: rec.question_correct, fix: rec.question_fix || "" },
+      answer: { text: t.answer, options: t.answer_options || [], correct: rec.answer_correct, fix: rec.answer_correct === false ? (t.answer_options[0] || null) : null },
+      reasoning: { text: t.reasoning, correct: rec.reasoning_correct, fix: rec.reasoning_fix || "" },
+      reasoning_type: { value: t.reasoning_type, options: t.type_options || [], correct: rec.type_correct, fix: rec.type_fix || null },
+      mentions: mentions,
+      mentions_added: rec.mentions_added || [],
+      skipped: rec.skipped || false,
+    };
+  });
+}
+
+/**
+ * Groups a document's recordings by their question id.
+ */
+async function recordingsByQuestion(docId) {
+  let items = [];
+  try { items = await recordingsApi.list(docId); } catch (e) { return {}; }
+  const map = {};
+  items.forEach((it) => {
+    const qid = (it.meta && it.meta.questionId) || "";
+    if (!map[qid]) map[qid] = [];
+    map[qid].push({
+      key: it.key,
+      url: recordingsApi.streamUrl(it.key),
+      durationMs: it.meta && it.meta.duration ? Number(it.meta.duration) : null,
+      owner: (it.meta && it.meta.owner) || "",
+      annotator: (it.meta && it.meta.annotator) || "",
+      createdAt: (it.meta && it.meta.createdAt) || "",
+    });
+  });
+  return map;
+}
+
+/**
+ * Builds a document's records with matching recordings attached per question.
+ */
+async function recordsForDocWithAudio(entry) {
+  const byQuestion = await recordingsByQuestion(entry.id);
+  return recordsForDoc(entry).map((rec, i) => {
+    const t = entry.tasks[i];
+    const qid = String(t.id != null ? t.id : i + 1);
+    return { ...rec, recordings: byQuestion[qid] || [] };
   });
 }
 
@@ -654,14 +1224,54 @@ function stamp() {
   return new Date().toISOString().replace(/[:.]/g, "-");
 }
 
-function exportJson() {
-  download(recordsForDoc(docEntry), "annotations_" + docEntry.id + "_" + stamp() + ".json");
+async function saveAnnotationsToCloud(scope, data, btn) {
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Saving";
+  try {
+    await annotationsApi.save(scope, annotatorName(), accessKey(), data);
+    btn.textContent = "Saved";
+  } catch (e) {
+    if (String(e.message).includes("401")) { localStorage.removeItem("access_key"); btn.textContent = "Wrong code"; }
+    else btn.textContent = "Save failed";
+  } finally {
+    setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1500);
+  }
 }
 
-function exportAll() {
+/**
+ * Assigns sequential annotator labels per unique owner across the records.
+ */
+function labelAnnotators(records) {
+  const firstSeen = {};
+  records.forEach((r) => (r.recordings || []).forEach((rc) => {
+    const o = rc.owner || "";
+    if (!o) return;
+    if (!(o in firstSeen) || (rc.createdAt && rc.createdAt < firstSeen[o])) {
+      firstSeen[o] = rc.createdAt || firstSeen[o] || "";
+    }
+  }));
+  const owners = Object.keys(firstSeen).sort((a, b) => (firstSeen[a] || "").localeCompare(firstSeen[b] || "") || a.localeCompare(b));
+  const label = {};
+  owners.forEach((o, i) => { label[o] = "annotator_" + (i + 1); });
+  records.forEach((r) => (r.recordings || []).forEach((rc) => {
+    rc.annotator = rc.owner ? (label[rc.owner] || "annotator_unknown") : "annotator_unknown";
+  }));
+  return records;
+}
+
+async function exportJson() {
+  const data = labelAnnotators(await recordsForDocWithAudio(docEntry));
+  return saveAnnotationsToCloud(docEntry.id, data, document.getElementById("export"));
+}
+
+async function exportAll() {
   const merged = [];
-  docs.forEach((entry) => { merged.push(...recordsForDoc(entry)); });
-  download(merged, "annotations_all_" + stamp() + ".json");
+  for (const entry of docs) {
+    const recs = await recordsForDocWithAudio(entry);
+    merged.push(...recs);
+  }
+  return saveAnnotationsToCloud("all", labelAnnotators(merged), document.getElementById("exportAll"));
 }
 
 function initViewer() {
@@ -849,6 +1459,7 @@ async function init() {
   document.getElementById("textIn").onclick = () => setFormZoom(formZoom + 0.05);
   applyFormZoom();
   initDragger();
+  await ensureAccess();
   try {
     await discover();
   } catch (e) {
