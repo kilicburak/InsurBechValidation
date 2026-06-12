@@ -583,12 +583,7 @@ function ownerId() {
 }
 
 function accessKey() {
-  let key = localStorage.getItem("access_key");
-  if (!key) {
-    key = (window.prompt("Enter the access code to record or delete") || "").trim();
-    if (key) localStorage.setItem("access_key", key);
-  }
-  return key;
+  return localStorage.getItem("access_key") || "";
 }
 
 const authApi = {
@@ -604,8 +599,7 @@ const authApi = {
 
 async function ensureAccess() {
   const stored = localStorage.getItem("access_key") || "";
-  const status = await authApi.status(stored);
-  if (status !== 401) return;
+  if (await authApi.status(stored) === 200) return;
   await promptForAccess();
 }
 
