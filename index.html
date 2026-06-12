@@ -926,9 +926,6 @@ function createRecorderPanel() {
     };
     paint();
 
-    const meta = document.createElement("span");
-    meta.className = "recmeta";
-    meta.textContent = (it.meta && it.meta.annotator) || "anonymous";
     const del = document.createElement("button");
     del.type = "button";
     del.className = "recdel";
@@ -945,7 +942,6 @@ function createRecorderPanel() {
     };
     row.appendChild(audio);
     row.appendChild(player);
-    row.appendChild(meta);
     row.appendChild(del);
     return row;
   }
