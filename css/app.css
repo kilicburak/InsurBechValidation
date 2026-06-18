@@ -176,7 +176,14 @@
   .glossary div { margin: 5px 0; }
   .glossary b { color: var(--accent); }
 
-  .callout { margin: 12px 0 16px; padding: 14px 16px; background: #eef3f1; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; }
-  .callout p { margin: 0 0 8px; line-height: 1.5; }
-  .callout p:last-child { margin-bottom: 0; }
-  .ctag { display: inline-block; min-width: 110px; font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .callout { margin: 12px 0 16px; padding: 16px 18px; background: #eef3f1; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; }
+  .ex-q { position: relative; padding-left: 18px; font-size: 15px; line-height: 1.5; color: var(--ink); font-style: italic; }
+  .ex-q::before { content: "\201C"; position: absolute; left: 0; top: -2px; font-size: 26px; line-height: 1; color: var(--accent); font-style: normal; }
+  .ex-meta { margin: 12px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .ex-row { display: grid; grid-template-columns: 108px 1fr; align-items: baseline; gap: 10px; }
+  .ex-row dt { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .ex-row dd { margin: 0; font-style: normal; }
+  .ex-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; line-height: 1.5; }
+  .ex-badge.bad { background: #f3ddd7; color: var(--bad); }
+  .ex-badge.ok { background: #dde9e4; color: var(--good); }
+  .ex-chip { display: inline-block; margin: 0 6px 4px 0; padding: 3px 10px; background: var(--chip); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }

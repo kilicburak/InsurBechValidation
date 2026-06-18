@@ -31,10 +31,13 @@
     <h2>Validating one item, step by step</h2>
     <p>Take the first question of <b>doc-01</b> as a concrete walkthrough:</p>
     <div class="callout">
-      <p><span class="ctag">Question</span> "My friend was driving my car and had an accident. She is 22 and isn't named on the policy. Will the damage be covered?"</p>
-      <p><span class="ctag">Answer</span> No</p>
-      <p><span class="ctag">Reasoning type</span> Exclusion Exception Chain</p>
-      <p><span class="ctag">Mentions</span> "What is not covered by this policy", "Drivers under 25"</p>
+      <div class="ex-q">My friend was driving my car and had an accident. She is 22 and isn't named on the policy. Will the damage be covered?</div>
+      <dl class="ex-meta">
+        <div class="ex-row"><dt>Answer</dt><dd><span class="ex-badge bad">No</span></dd></div>
+        <div class="ex-row"><dt>Reasoning</dt><dd>According to the policy, there is no cover for damage that occurs while someone under 25 is driving your vehicle unless that person is your spouse or partner, or is specifically named in the Policy Schedule. Your friend is 22, is not named on the policy, and is not your spouse or partner, so the damage is not covered.</dd></div>
+        <div class="ex-row"><dt>Mentions</dt><dd><span class="ex-chip">What is not covered by this policy</span><span class="ex-chip">Drivers under 25</span></dd></div>
+        <div class="ex-row"><dt>Reasoning type</dt><dd>Exclusion Exception Chain</dd></div>
+      </dl>
     </div>
     <ol>
       <li><b>Find the evidence first.</b> Type a keyword such as <i>under 25</i> into the search box above the PDF and press Next to jump through matches. Use <b>+</b> / <b>&minus;</b> to zoom and read the exact clause. Here you would look for the wording about drivers under 25 and the list of exclusions.</li>
