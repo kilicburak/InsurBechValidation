@@ -133,20 +133,6 @@ function recordedAt(it) {
   const ms = Date.parse(stamp);
   return Number.isNaN(ms) ? 0 : ms;
 }
-
-/**
- * Forces the browser to read the true clip length so the seek bar maps correctly.
- */
-function fixAudioDuration(audio) {
-  audio.addEventListener("loadedmetadata", function onMeta() {
-    audio.removeEventListener("loadedmetadata", onMeta);
-    audio.currentTime = 1e101;
-    audio.addEventListener("timeupdate", function onSeek() {
-      audio.removeEventListener("timeupdate", onSeek);
-      audio.currentTime = 0;
-    });
-  });
-}
 function createRecorderPanel() {
   const recorder = createAudioRecorder();
   let docId = null;
