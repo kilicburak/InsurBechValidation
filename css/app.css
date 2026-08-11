@@ -187,3 +187,26 @@
   .ex-badge.bad { background: #f3ddd7; color: var(--bad); }
   .ex-badge.ok { background: #dde9e4; color: var(--good); }
   .ex-chip { display: inline-block; margin: 0 6px 4px 0; padding: 3px 10px; background: var(--chip); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+
+  /* Document evidence navigator */
+  .evidence { margin: 14px 0 6px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; }
+  .evidence .hint { margin-bottom: 8px; }
+  .evrow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin: 6px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; transition: background .15s, border-color .15s; }
+  .evrow:hover { background: var(--chip); border-color: var(--accent); }
+  .evrow.active { border-color: var(--accent); background: var(--chip); }
+  .evtxt { flex: 1; min-width: 0; }
+  .evsec { display: block; font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+  .evq { display: block; font-size: 13px; line-height: 1.45; color: var(--ink); font-style: italic; }
+  .evpage { flex: none; font-size: 11.5px; font-weight: 700; color: var(--accent); background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; }
+  .evhead { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+  .evhead .label { margin: 0; }
+  .evarrow { font-size: 13px; color: var(--accent); }
+  .evidence.closed { padding: 8px 14px; }
+  .evbadge { flex: none; margin-left: auto; margin-right: 10px; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+  .evbadge.ok { background: #dde9e4; color: var(--good); }
+  .evbadge.warn { background: #f7ecd4; color: #9a6b00; }
+  .evbadge.bad { background: #f3ddd7; color: var(--bad); }
+  .evnote { font-size: 12.5px; line-height: 1.5; padding: 8px 10px; border-radius: 8px; margin: 0 0 8px; }
+  .evnote.ok { background: #dde9e4; color: #2f5d49; }
+  .evnote.warn { background: #f7ecd4; color: #7a5500; }
+  .evnote.bad { background: #f3ddd7; color: #8e2a1e; }

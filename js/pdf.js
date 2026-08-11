@@ -6,12 +6,31 @@ function initViewer() {
   findController = new pdfjsViewer.PDFFindController({ eventBus, linkService });
   pdfViewer = new pdfjsViewer.PDFViewer({ container, eventBus, linkService, findController });
   linkService.setViewer(pdfViewer);
+  const origScroll = findController.scrollMatchIntoView.bind(findController);
+  findController.scrollMatchIntoView = (params) => {
+    const armed = findController._scrollMatches !== false;
+    origScroll(params);
+    const el = params && params.element;
+    const sel = findController.selected;
+    if (!armed || !el || !sel || params.pageIndex !== sel.pageIdx || params.matchIndex !== sel.matchIdx) return;
+    requestAnimationFrame(() => {
+      const target = el.querySelector(".highlight.selected") || el;
+      centerMatch(target, container);
+    });
+  };
   eventBus.on("pagesinit", () => {
     pdfViewer.currentScaleValue = "page-width";
     setTimeout(() => { if (pdfViewer.pdfDocument) pdfViewer.currentScaleValue = "page-width"; }, 120);
   });
   eventBus.on("updatefindmatchescount", (e) => showMatches(e.matchesCount));
   eventBus.on("updatefindcontrolstate", (e) => showMatches(e.matchesCount));
+}
+
+function centerMatch(el, container) {
+  const cRect = container.getBoundingClientRect();
+  const eRect = el.getBoundingClientRect();
+  const top = container.scrollTop + (eRect.top - cRect.top) - container.clientHeight / 2 + eRect.height / 2;
+  container.scrollTo({ top: Math.max(0, top) });
 }
 
 function showMatches(mc) {

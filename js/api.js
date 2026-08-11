@@ -38,40 +38,6 @@ function recordsForDoc(entry) {
   });
 }
 
-/**
- * Groups a document's recordings by their question id.
- */
-async function recordingsByQuestion(docId) {
-  let items = [];
-  try { items = await recordingsApi.list(docId); } catch (e) { return {}; }
-  const map = {};
-  items.forEach((it) => {
-    const qid = (it.meta && it.meta.questionId) || "";
-    if (!map[qid]) map[qid] = [];
-    map[qid].push({
-      key: it.key,
-      url: recordingsApi.streamUrl(it.key),
-      durationMs: it.meta && it.meta.duration ? Number(it.meta.duration) : null,
-      owner: (it.meta && it.meta.owner) || "",
-      annotator: (it.meta && it.meta.annotator) || "",
-      createdAt: (it.meta && it.meta.createdAt) || "",
-    });
-  });
-  return map;
-}
-
-/**
- * Builds a document's records with matching recordings attached per question.
- */
-async function recordsForDocWithAudio(entry) {
-  const byQuestion = await recordingsByQuestion(entry.id);
-  return recordsForDoc(entry).map((rec, i) => {
-    const t = entry.tasks[i];
-    const qid = String(t.id != null ? t.id : i + 1);
-    return { ...rec, recordings: byQuestion[qid] || [] };
-  });
-}
-
 function download(data, name) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
@@ -100,37 +66,15 @@ async function saveAnnotationsToCloud(scope, data, btn) {
   }
 }
 
-/**
- * Assigns sequential annotator labels per unique owner across the records.
- */
-function labelAnnotators(records) {
-  const firstSeen = {};
-  records.forEach((r) => (r.recordings || []).forEach((rc) => {
-    const o = rc.owner || "";
-    if (!o) return;
-    if (!(o in firstSeen) || (rc.createdAt && rc.createdAt < firstSeen[o])) {
-      firstSeen[o] = rc.createdAt || firstSeen[o] || "";
-    }
-  }));
-  const owners = Object.keys(firstSeen).sort((a, b) => (firstSeen[a] || "").localeCompare(firstSeen[b] || "") || a.localeCompare(b));
-  const label = {};
-  owners.forEach((o, i) => { label[o] = "annotator_" + (i + 1); });
-  records.forEach((r) => (r.recordings || []).forEach((rc) => {
-    rc.annotator = rc.owner ? (label[rc.owner] || "annotator_unknown") : "annotator_unknown";
-  }));
-  return records;
-}
-
 async function exportJson() {
-  const data = labelAnnotators(await recordsForDocWithAudio(docEntry));
+  const data = recordsForDoc(docEntry);
   return saveAnnotationsToCloud(docEntry.id, data, document.getElementById("export"));
 }
 
 async function exportAll() {
   const merged = [];
   for (const entry of docs) {
-    const recs = await recordsForDocWithAudio(entry);
-    merged.push(...recs);
+    merged.push(...recordsForDoc(entry));
   }
-  return saveAnnotationsToCloud("all", labelAnnotators(merged), document.getElementById("exportAll"));
+  return saveAnnotationsToCloud("all", merged, document.getElementById("exportAll"));
 }

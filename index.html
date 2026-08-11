@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/web/pdf_viewer.css"/>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/web/pdf_viewer.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
 <script src="config.js"></script>
 <link rel="stylesheet" href="css/app.css"/>
 </head>
@@ -43,10 +42,10 @@
       <li><b>Find the evidence first.</b> Type a keyword such as <i>under 25</i> into the search box above the PDF and press Next to jump through matches. Use <b>+</b> / <b>&minus;</b> to zoom and read the exact clause. Here you would look for the wording about drivers under 25 and the list of exclusions.</li>
       <li><b>Question.</b> Decide if the question is answerable from this document and clearly worded. If yes, click <b>Correct</b>. If it is unanswerable or unclear, click <b>Incorrect</b> and rewrite it in the box that appears.</li>
       <li><b>Answer.</b> The answer is yes/no. If the policy really does exclude an unnamed 22 year old driver, the shown answer "No" is right, so click <b>Correct</b>. If the document actually supports the opposite, click <b>Incorrect</b>: that flips the ground truth to the other value, so no typing is needed.</li>
-      <li><b>Reasoning.</b> Check that the explanation matches the clauses you found and actually leads to the answer. Click <b>Correct</b> if it holds. If it is wrong or incomplete, click <b>Incorrect</b> and either type the corrected reasoning or record it with your voice (see below).</li>
+      <li><b>Reasoning.</b> Check that the explanation matches the clauses you found and actually leads to the answer. Click <b>Correct</b> if it holds. If it is wrong or incomplete, click <b>Incorrect</b> and type the corrected reasoning in the box that appears.</li>
       <li><b>Mentions.</b> For each listed section, click <b>Correct</b> (relevant and well written), <b>Incorrect</b> (right section, wrong wording, then type the corrected name), or <b>Irrelevant</b> (does not belong). If the reasoning relies on a section that is missing from the list, click <b>+</b> and add it.</li>
       <li><b>Reasoning type.</b> Confirm the type fits (see the four types below). If not, click <b>Incorrect</b> and pick the correct one. The original type cannot be re-selected.</li>
-      <li><b>Move on.</b> Click <b>Next</b>. If anything required is missing, the tool highlights it and will not advance. Use <b>Prev</b> to go back, or <b>Skip item</b> to leave an item unvalidated (this also deletes any voice recording on it).</li>
+      <li><b>Move on.</b> Click <b>Next</b>. If anything required is missing, the tool highlights it and will not advance. Use <b>Prev</b> to go back, or <b>Skip item</b> to leave an item unvalidated.</li>
     </ol>
 
     <div class="glossary">
@@ -70,11 +69,6 @@
     </div>
 
     <div class="glossary">
-      <h2>Voice corrections</h2>
-      <p>When you mark <b>Reasoning</b> as Incorrect, a recorder appears. Click the microphone to record your spoken correction, click again to stop, and play it back or delete it with the <b>&times;</b> button. A recording counts as a valid correction even if you leave the text box empty.</p>
-    </div>
-
-    <div class="glossary">
       <h2>Saving and exporting</h2>
       <p>Your progress autosaves in this browser as you go, so you can stop and resume any time. When a document is finished, click <b>Export this doc</b>; to download everything you have validated, use <b>Export all</b> on this page. Each card and category header shows how many items you have validated.</p>
     </div>
@@ -88,10 +82,6 @@
       </ol>
     </div>
 
-    <div class="glossary">
-      <h2>Ethics</h2>
-      <p>Voice recordings are collected only to transcribe your spoken corrections into text for this annotation work. They are not used for any other purpose, not shared, and we do not collect personal attachments or personal data. You can delete any recording you make at any time.</p>
-    </div>
     </div>
   </div>
   <div class="chooser-right">
@@ -142,7 +132,6 @@
 
 <script src="js/state.js"></script>
 <script src="js/auth.js"></script>
-<script src="js/audio.js"></script>
 <script src="js/api.js"></script>
 <script src="js/form.js"></script>
 <script src="js/pdf.js"></script>

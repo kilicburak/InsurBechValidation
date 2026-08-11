@@ -76,8 +76,7 @@ function buildGate(label, valueText, field, options, rec, def, showValue) {
   if (showErrors) {
     let msg = null;
     if (correct === null) msg = "Choose Correct or Incorrect";
-    else if (correct === false && field === "reasoning" && !(rec.reasoning_fix || "").trim() && curRecordingCount === 0) msg = "Add a correction or a recording";
-    else if (correct === false && options === "text" && field !== "reasoning" && !(rec[field + "_fix"] || "").trim()) msg = "Write the corrected version";
+    else if (correct === false && options === "text" && !(rec[field + "_fix"] || "").trim()) msg = "Write the corrected version";
     else if (correct === false && Array.isArray(options) && !rec[field + "_fix"]) msg = "Pick the correct option";
     if (msg) {
       const e = document.createElement("div");
@@ -204,6 +203,81 @@ function buildMentions(task, rec) {
 
   return wrap;
 }
+function locateEvidence(row, quote) {
+  const search = document.getElementById("search");
+  search.value = quote;
+  runFind("");
+  document.querySelectorAll(".evrow.active").forEach((r) => r.classList.remove("active"));
+  row.classList.add("active");
+}
+
+function buildEvidence(task) {
+  if (!SHOW_DOCUMENT_EVIDENCE || !docEntry) return null;
+  const perDoc = evidenceData[docEntry.id] || {};
+  const entry = perDoc[String(task.id)];
+  const items = Array.isArray(entry) ? entry : entry && entry.ev;
+  if (!items || !items.length) return null;
+  const verdict = !Array.isArray(entry) && entry.verdict;
+  const note = !Array.isArray(entry) && entry.note;
+
+  const wrap = document.createElement("div");
+  wrap.className = "evidence" + (evidenceOpen ? "" : " closed");
+  const head = document.createElement("div");
+  head.className = "evhead";
+  const lab = document.createElement("div");
+  lab.className = "label";
+  lab.textContent = "Document evidence (" + items.length + ")";
+  head.appendChild(lab);
+  if (SHOW_EVIDENCE_ANALYSIS && verdict) {
+    const badge = document.createElement("span");
+    badge.className = "evbadge " + verdict;
+    badge.textContent = VERDICT_LABELS[verdict] || verdict;
+    head.appendChild(badge);
+  }
+  const arrow = document.createElement("span");
+  arrow.className = "evarrow";
+  arrow.textContent = evidenceOpen ? "▾" : "▸";
+  head.appendChild(arrow);
+  head.onclick = () => { evidenceOpen = !evidenceOpen; renderForm(); };
+  wrap.appendChild(head);
+  if (!evidenceOpen) return wrap;
+
+  const hint = document.createElement("div");
+  hint.className = "hint";
+  hint.textContent = "Starting points for locating the relevant wording. Click a quote to search it in the PDF; the match counter above the PDF shows where it lands. Judge the item yourself.";
+  wrap.appendChild(hint);
+
+  if (SHOW_EVIDENCE_ANALYSIS && note) {
+    const n = document.createElement("div");
+    n.className = "evnote " + (verdict || "ok");
+    n.textContent = note;
+    wrap.appendChild(n);
+  }
+
+  items.forEach((e) => {
+    const row = document.createElement("div");
+    row.className = "evrow";
+    const txt = document.createElement("div");
+    txt.className = "evtxt";
+    const sec = document.createElement("span");
+    sec.className = "evsec";
+    sec.textContent = e.s;
+    const q = document.createElement("span");
+    q.className = "evq";
+    q.textContent = "“" + e.t + "”";
+    txt.appendChild(sec);
+    txt.appendChild(q);
+    const pg = document.createElement("span");
+    pg.className = "evpage";
+    pg.textContent = "p." + e.p + " ▶";
+    row.appendChild(txt);
+    row.appendChild(pg);
+    row.onclick = () => locateEvidence(row, e.t);
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
 function renderForm() {
   const form = document.getElementById("form");
   if (!tasks.length) { form.innerHTML = '<div class="empty">No tasks.</div>'; return; }
@@ -225,13 +299,11 @@ function renderForm() {
   form.appendChild(buildGate("", task.question, "question", "text", rec, null, false));
 
   form.appendChild(buildGate("Answer", task.answer, "answer", null, rec, null));
-  form.appendChild(buildGate("Reasoning", task.reasoning, "reasoning", "text", rec, null));
 
-  if (rec.reasoning_correct === false) {
-    const panel = getRecorderPanel();
-    panel.setTarget(docEntry.id, task.id != null ? task.id : current + 1, task.question);
-    form.appendChild(panel.element);
-  }
+  const reasoningGate = buildGate("Reasoning", task.reasoning, "reasoning", "text", rec, null);
+  const ev = buildEvidence(task);
+  if (ev) reasoningGate.insertBefore(ev, reasoningGate.querySelector(".gate"));
+  form.appendChild(reasoningGate);
 
   const mLab = document.createElement("div");
   mLab.className = "label"; mLab.textContent = "Mentions";
@@ -275,7 +347,7 @@ function missingFields(task, rec) {
   else if (rec.question_correct === false && !(rec.question_fix || "").trim()) m.push("Question: write the corrected version");
   if (rec.answer_correct === null) m.push("Answer: choose Correct or Incorrect");
   if (rec.reasoning_correct === null) m.push("Reasoning: choose Correct or Incorrect");
-  else if (rec.reasoning_correct === false && !(rec.reasoning_fix || "").trim() && curRecordingCount === 0) m.push("Reasoning: add a correction or a recording");
+  else if (rec.reasoning_correct === false && !(rec.reasoning_fix || "").trim()) m.push("Reasoning: write the corrected version");
   if (rec.type_correct === null) m.push("Reasoning type: choose Correct or Incorrect");
   else if (rec.type_correct === false && !rec.type_fix) m.push("Reasoning type: pick the correct type");
   const mentions = task.mentions || [];
@@ -287,22 +359,8 @@ function missingFields(task, rec) {
   return m;
 }
 
-async function questionRecordingKeys(docId, questionId) {
-  let items = [];
-  try { items = await recordingsApi.list(docId); } catch (e) { return []; }
-  return items
-    .filter((it) => it.meta && it.meta.questionId === String(questionId) && it.meta.owner === ownerId())
-    .map((it) => it.key);
-}
-
-async function skip() {
+function skip() {
   const task = tasks[current];
-  const qid = task.id != null ? task.id : current + 1;
-  const keys = await questionRecordingKeys(docEntry.id, qid);
-  if (keys.length && !window.confirm("Skipping will delete this question's recording. Continue?")) return;
-  for (const key of keys) {
-    try { await recordingsApi.remove(key, accessKey()); } catch (e) {}
-  }
   const fresh = blank(task);
   fresh.skipped = true;
   results[task.id] = fresh;
@@ -310,18 +368,15 @@ async function skip() {
   showErrors = false;
   current = Math.min(tasks.length - 1, current + 1);
   addOpen = false;
+  evidenceOpen = false;
   document.getElementById("formScroll").scrollTop = 0;
   renderForm();
 }
 
-async function go(delta) {
+function go(delta) {
   if (delta > 0) {
     const task = tasks[current];
     const rec = record(task);
-    if (rec.reasoning_correct === false && !(rec.reasoning_fix || "").trim()) {
-      const qid = task.id != null ? task.id : current + 1;
-      curRecordingCount = (await questionRecordingKeys(docEntry.id, qid)).length;
-    }
     const miss = missingFields(task, rec);
     if (miss.length) {
       showErrors = true;
@@ -334,6 +389,7 @@ async function go(delta) {
   showErrors = false;
   current = Math.max(0, Math.min(tasks.length - 1, current + delta));
   addOpen = false;
+  evidenceOpen = false;
   document.getElementById("formScroll").scrollTop = 0;
   renderForm();
 }

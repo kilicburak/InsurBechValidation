@@ -23,7 +23,6 @@ let results = {};
 let current = 0;
 let addOpen = false;
 let showErrors = false;
-let curRecordingCount = 0;
 let formZoom = parseFloat(localStorage.getItem("form_zoom")) || 1;
 
 function applyFormZoom() {
@@ -38,6 +37,23 @@ function setFormZoom(z) {
 let pdfViewer = null;
 let findController = null;
 let eventBus = null;
+
+const SHOW_DOCUMENT_EVIDENCE = !!(window.APP_CONFIG && window.APP_CONFIG.SHOW_DOCUMENT_EVIDENCE);
+const SHOW_EVIDENCE_ANALYSIS = !!(window.APP_CONFIG && window.APP_CONFIG.SHOW_EVIDENCE_ANALYSIS);
+const VERDICT_LABELS = { ok: "✓ Looks correct", warn: "⚠ Needs review", bad: "✗ Likely wrong" };
+let evidenceData = {};
+let evidenceOpen = false;
+
+async function loadEvidence(docId) {
+  if (!SHOW_DOCUMENT_EVIDENCE || evidenceData[docId]) return;
+  try {
+    const res = await fetch("evidences/" + docId + ".json", { cache: "no-store" });
+    evidenceData[docId] = res.ok ? await res.json() : {};
+  } catch (e) {
+    evidenceData[docId] = {};
+  }
+  if (docEntry && docEntry.id === docId) renderForm();
+}
 
 async function discover() {
   const res = await fetch("manifest.json", { cache: "no-store" });

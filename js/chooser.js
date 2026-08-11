@@ -1,9 +1,11 @@
 function openDoc(entry) {
   docEntry = entry;
+  loadEvidence(entry.id);
   loadStore(entry.id);
   tasks = buildTasks(entry);
   current = 0;
   addOpen = false;
+  evidenceOpen = false;
   showErrors = false;
   document.getElementById("docTitle").textContent = entry.title;
   document.getElementById("search").value = "";
